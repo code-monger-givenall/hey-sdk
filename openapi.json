@@ -1303,6 +1303,160 @@
         }
       }
     },
+    "/clearances": {
+      "get": {
+        "description": "List pending Screener clearances. HEY currently serves this collection as HTML.",
+        "operationId": "GetClearances",
+        "responses": {
+          "200": {
+            "description": "GetClearances 200 response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetClearancesOutputPayload"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UnauthorizedError 401 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorResponseContent"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "InternalServerError 500 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorResponseContent"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "ServiceUnavailableError 503 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceUnavailableErrorResponseContent"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Clearances"
+        ],
+        "x-hey-retry": {
+          "maxAttempts": 3,
+          "baseDelayMs": 1000,
+          "backoff": "exponential",
+          "retryOn": [
+            429,
+            503
+          ]
+        }
+      }
+    },
+    "/clearances/{clearanceId}": {
+      "patch": {
+        "description": "Approve or deny a pending Screener clearance.",
+        "operationId": "UpdateClearance",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateClearanceInputPayload"
+              }
+            }
+          },
+          "required": true
+        },
+        "parameters": [
+          {
+            "name": "clearanceId",
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "UpdateClearance 200 response"
+          },
+          "401": {
+            "description": "UnauthorizedError 401 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorResponseContent"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NotFoundError 404 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFoundErrorResponseContent"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "UnprocessableEntityError 422 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntityErrorResponseContent"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "InternalServerError 500 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerErrorResponseContent"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "ServiceUnavailableError 503 response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceUnavailableErrorResponseContent"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Clearances"
+        ],
+        "x-hey-retry": {
+          "maxAttempts": 2,
+          "baseDelayMs": 1000,
+          "backoff": "exponential",
+          "retryOn": [
+            429,
+            503
+          ]
+        }
+      }
+    },
     "/contacts.json": {
       "get": {
         "description": "List contacts",
@@ -4125,6 +4279,9 @@
       "GetCalendarRecordingsResponseContent": {
         "$ref": "#/components/schemas/CalendarRecordingsResponse"
       },
+      "GetClearancesOutputPayload": {
+        "type": "string"
+      },
       "GetContactResponseContent": {
         "$ref": "#/components/schemas/ContactDetail"
       },
@@ -5307,6 +5464,9 @@
         "required": [
           "message"
         ]
+      },
+      "UpdateClearanceInputPayload": {
+        "type": "string"
       },
       "UpdateJournalEntryRequestContent": {
         "type": "object",

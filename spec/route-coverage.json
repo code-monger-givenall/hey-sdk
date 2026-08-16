@@ -56,6 +56,11 @@
   },
   {
     "method": "GET",
+    "operationId": "GetClearances",
+    "path": "/clearances"
+  },
+  {
+    "method": "GET",
     "operationId": "GetContact",
     "path": "/contacts/{contactId}"
   },
@@ -203,6 +208,11 @@
     "method": "DELETE",
     "operationId": "UncompleteHabit",
     "path": "/calendar/days/{day}/habits/{habitId}/completions"
+  },
+  {
+    "method": "PATCH",
+    "operationId": "UpdateClearance",
+    "path": "/clearances/{clearanceId}"
   },
   {
     "method": "PATCH",

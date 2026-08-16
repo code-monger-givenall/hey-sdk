@@ -329,6 +329,9 @@ type GetBubbleboxResponseContent = BoxShowResponse
 // GetCalendarRecordingsResponseContent CalendarRecordingsResponse — recordings grouped by type
 type GetCalendarRecordingsResponseContent = CalendarRecordingsResponse
 
+// GetClearancesOutputPayload defines model for GetClearancesOutputPayload.
+type GetClearancesOutputPayload = string
+
 // GetContactResponseContent ContactDetail — extended contact with additional show fields
 type GetContactResponseContent = ContactDetail
 
@@ -810,6 +813,9 @@ type UnprocessableEntityErrorResponseContent struct {
 	Message string `json:"message"`
 }
 
+// UpdateClearanceInputPayload defines model for UpdateClearanceInputPayload.
+type UpdateClearanceInputPayload = string
+
 // UpdateJournalEntryRequestContent Wire format: {calendar_journal_entry: {content}}
 type UpdateJournalEntryRequestContent struct {
 	CalendarJournalEntry JournalEntryPayload `json:"calendar_journal_entry"`
@@ -987,6 +993,9 @@ type UpdateTimeTrackJSONRequestBody = UpdateTimeTrackRequestContent
 
 // CreateCalendarTodoJSONRequestBody defines body for CreateCalendarTodo for application/json ContentType.
 type CreateCalendarTodoJSONRequestBody = CreateCalendarTodoRequestContent
+
+// UpdateClearanceFormdataRequestBody defines body for UpdateClearance for application/x-www-form-urlencoded ContentType.
+type UpdateClearanceFormdataRequestBody = UpdateClearanceInputPayload
 
 // CreateReplyJSONRequestBody defines body for CreateReply for application/json ContentType.
 type CreateReplyJSONRequestBody = CreateReplyRequestContent
@@ -1295,6 +1304,14 @@ type ClientInterface interface {
 
 	// GetCalendarRecordings request
 	GetCalendarRecordings(ctx context.Context, calendarId int64, params *GetCalendarRecordingsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetClearances request
+	GetClearances(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateClearanceWithBody request with any body
+	UpdateClearanceWithBody(ctx context.Context, clearanceId int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	UpdateClearanceWithFormdataBody(ctx context.Context, clearanceId int64, body UpdateClearanceFormdataRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListContacts request
 	ListContacts(ctx context.Context, params *ListContactsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1619,6 +1636,46 @@ func (c *Client) GetCalendarRecordings(ctx context.Context, calendarId int64, pa
 	return c.doWithRetry(ctx, func() (*http.Request, error) {
 		return NewGetCalendarRecordingsRequest(c.Server, calendarId, params)
 	}, true, "GetCalendarRecordings", reqEditors...)
+
+}
+
+// GetClearances is marked as idempotent and will be retried on transient failures.
+
+func (c *Client) GetClearances(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+
+	return c.doWithRetry(ctx, func() (*http.Request, error) {
+		return NewGetClearancesRequest(c.Server)
+	}, true, "GetClearances", reqEditors...)
+
+}
+
+// UpdateClearanceWithBody executes the UpdateClearance operation.
+
+func (c *Client) UpdateClearanceWithBody(ctx context.Context, clearanceId int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+
+	req, err := NewUpdateClearanceRequestWithBody(c.Server, clearanceId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+
+}
+
+func (c *Client) UpdateClearanceWithFormdataBody(ctx context.Context, clearanceId int64, body UpdateClearanceFormdataRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+
+	req, err := NewUpdateClearanceRequestWithFormdataBody(c.Server, clearanceId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
 
 }
 
@@ -2682,6 +2739,80 @@ func NewGetCalendarRecordingsRequest(server string, calendarId int64, params *Ge
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewGetClearancesRequest generates requests for GetClearances
+func NewGetClearancesRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/clearances")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdateClearanceRequestWithFormdataBody calls the generic UpdateClearance builder with application/x-www-form-urlencoded body
+func NewUpdateClearanceRequestWithFormdataBody(server string, clearanceId int64, body UpdateClearanceFormdataRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	bodyStr, err := runtime.MarshalForm(body, nil)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = strings.NewReader(bodyStr.Encode())
+	return NewUpdateClearanceRequestWithBody(server, clearanceId, "application/x-www-form-urlencoded", bodyReader)
+}
+
+// NewUpdateClearanceRequestWithBody generates requests for UpdateClearance with any type of body
+func NewUpdateClearanceRequestWithBody(server string, clearanceId int64, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "clearanceId", runtime.ParamLocationPath, clearanceId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/clearances/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PATCH", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -3886,6 +4017,8 @@ var operationMetadata = map[string]OperationMetadata{
 	"CompleteCalendarTodo":   {Idempotent: true, HasSensitiveParams: false},
 	"ListCalendars":          {Idempotent: true, HasSensitiveParams: false},
 	"GetCalendarRecordings":  {Idempotent: true, HasSensitiveParams: false},
+	"GetClearances":          {Idempotent: true, HasSensitiveParams: false},
+	"UpdateClearance":        {Idempotent: false, HasSensitiveParams: false},
 	"ListContacts":           {Idempotent: true, HasSensitiveParams: false},
 	"GetContact":             {Idempotent: true, HasSensitiveParams: false},
 	"ListDrafts":             {Idempotent: true, HasSensitiveParams: false},
@@ -4573,6 +4706,14 @@ type ClientWithResponsesInterface interface {
 	// GetCalendarRecordingsWithResponse request
 	GetCalendarRecordingsWithResponse(ctx context.Context, calendarId int64, params *GetCalendarRecordingsParams, reqEditors ...RequestEditorFn) (*GetCalendarRecordingsResponse, error)
 
+	// GetClearancesWithResponse request
+	GetClearancesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetClearancesResponse, error)
+
+	// UpdateClearanceWithBodyWithResponse request with any body
+	UpdateClearanceWithBodyWithResponse(ctx context.Context, clearanceId int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateClearanceResponse, error)
+
+	UpdateClearanceWithFormdataBodyWithResponse(ctx context.Context, clearanceId int64, body UpdateClearanceFormdataRequestBody, reqEditors ...RequestEditorFn) (*UpdateClearanceResponse, error)
+
 	// ListContactsWithResponse request
 	ListContactsWithResponse(ctx context.Context, params *ListContactsParams, reqEditors ...RequestEditorFn) (*ListContactsResponse, error)
 
@@ -5077,6 +5218,56 @@ func (r GetCalendarRecordingsResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r GetCalendarRecordingsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetClearancesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON401      *UnauthorizedErrorResponseContent
+	JSON500      *InternalServerErrorResponseContent
+	JSON503      *ServiceUnavailableErrorResponseContent
+}
+
+// Status returns HTTPResponse.Status
+func (r GetClearancesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetClearancesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type UpdateClearanceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON401      *UnauthorizedErrorResponseContent
+	JSON404      *NotFoundErrorResponseContent
+	JSON422      *UnprocessableEntityErrorResponseContent
+	JSON500      *InternalServerErrorResponseContent
+	JSON503      *ServiceUnavailableErrorResponseContent
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateClearanceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateClearanceResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -5936,6 +6127,32 @@ func (c *ClientWithResponses) GetCalendarRecordingsWithResponse(ctx context.Cont
 		return nil, err
 	}
 	return ParseGetCalendarRecordingsResponse(rsp)
+}
+
+// GetClearancesWithResponse request returning *GetClearancesResponse
+func (c *ClientWithResponses) GetClearancesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetClearancesResponse, error) {
+	rsp, err := c.GetClearances(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetClearancesResponse(rsp)
+}
+
+// UpdateClearanceWithBodyWithResponse request with arbitrary body returning *UpdateClearanceResponse
+func (c *ClientWithResponses) UpdateClearanceWithBodyWithResponse(ctx context.Context, clearanceId int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateClearanceResponse, error) {
+	rsp, err := c.UpdateClearanceWithBody(ctx, clearanceId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateClearanceResponse(rsp)
+}
+
+func (c *ClientWithResponses) UpdateClearanceWithFormdataBodyWithResponse(ctx context.Context, clearanceId int64, body UpdateClearanceFormdataRequestBody, reqEditors ...RequestEditorFn) (*UpdateClearanceResponse, error) {
+	rsp, err := c.UpdateClearanceWithFormdataBody(ctx, clearanceId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateClearanceResponse(rsp)
 }
 
 // ListContactsWithResponse request returning *ListContactsResponse
@@ -7061,6 +7278,100 @@ func ParseGetCalendarRecordingsResponse(rsp *http.Response) (*GetCalendarRecordi
 			return nil, err
 		}
 		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest InternalServerErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest ServiceUnavailableErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetClearancesResponse parses an HTTP response from a GetClearancesWithResponse call
+func ParseGetClearancesResponse(rsp *http.Response) (*GetClearancesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetClearancesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest InternalServerErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest ServiceUnavailableErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateClearanceResponse parses an HTTP response from a UpdateClearanceWithResponse call
+func ParseUpdateClearanceResponse(rsp *http.Response) (*UpdateClearanceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateClearanceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest UnprocessableEntityErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON422 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
 		var dest InternalServerErrorResponseContent

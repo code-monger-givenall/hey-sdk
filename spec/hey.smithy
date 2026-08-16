@@ -36,6 +36,7 @@ use smithy.api#httpQuery
 use smithy.api#httpPayload
 use smithy.api#required
 use smithy.api#readonly
+use smithy.api#mediaType
 use smithy.api#idempotent
 use smithy.api#error
 use smithy.api#httpError
@@ -96,6 +97,10 @@ service HEY {
         // Contacts (2 MVP)
         ListContacts
         GetContact
+
+        // Clearances (2 MVP)
+        GetClearances
+        UpdateClearance
 
         // Calendars (2 MVP)
         ListCalendars
@@ -301,6 +306,12 @@ structure Clearance {
     id: Long
     status: String
 }
+
+@mediaType("text/html")
+string HTMLDocument
+
+@mediaType("application/x-www-form-urlencoded")
+string FormURLEncodedDocument
 
 /// Account — a HEY account
 structure Account {
@@ -1404,6 +1415,46 @@ structure ContactDetail {
 structure GetContactOutput {
     @required
     contact: ContactDetail
+}
+
+// =============================================================================
+// CLEARANCE OPERATIONS
+// =============================================================================
+
+/// List pending Screener clearances. HEY currently serves this collection as HTML.
+@readonly
+@http(method: "GET", uri: "/clearances")
+@tags(["Clearances"])
+@heyRetry(maxAttempts: 3, baseDelayMs: 1000, backoff: "exponential", retryOn: [429, 503])
+operation GetClearances {
+    output: GetClearancesOutput
+    errors: [UnauthorizedError, InternalServerError, ServiceUnavailableError]
+}
+
+structure GetClearancesOutput {
+    @httpPayload
+    @required
+    body: HTMLDocument
+}
+
+/// Approve or deny a pending Screener clearance.
+@idempotent
+@http(method: "PATCH", uri: "/clearances/{clearanceId}")
+@tags(["Clearances"])
+@heyRetry(maxAttempts: 2, baseDelayMs: 1000, backoff: "exponential", retryOn: [429, 503])
+operation UpdateClearance {
+    input: UpdateClearanceInput
+    errors: [UnauthorizedError, NotFoundError, UnprocessableEntityError, InternalServerError, ServiceUnavailableError]
+}
+
+structure UpdateClearanceInput {
+    @httpLabel
+    @required
+    clearanceId: Long
+
+    @httpPayload
+    @required
+    body: FormURLEncodedDocument
 }
 
 // =============================================================================

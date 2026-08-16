@@ -3090,11 +3090,6 @@
     "reason": "phase-2: recent search history"
   },
   {
-    "method": "GET",
-    "path": "/clearances",
-    "reason": "phase-2: screener clearances"
-  },
-  {
     "method": "POST",
     "path": "/clearances",
     "reason": "phase-2: screener clearances"
@@ -3161,11 +3156,6 @@
   },
   {
     "method": "GET",
-    "path": "/clearances/{id}",
-    "reason": "phase-2: screener clearances"
-  },
-  {
-    "method": "PATCH",
     "path": "/clearances/{id}",
     "reason": "phase-2: screener clearances"
   },
