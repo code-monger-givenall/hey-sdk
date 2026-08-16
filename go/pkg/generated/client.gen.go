@@ -707,6 +707,9 @@ type ReplyMessagePayload struct {
 	Content string `json:"content"`
 }
 
+// ScheduleTopicBubbleUpInputPayload defines model for ScheduleTopicBubbleUpInputPayload.
+type ScheduleTopicBubbleUpInputPayload = string
+
 // SearchResponseContent SearchResult — topics from search
 type SearchResponseContent = SearchResult
 
@@ -976,6 +979,11 @@ type GetTopicEntriesParams struct {
 	Page string `form:"page,omitempty" json:"page,omitempty"`
 }
 
+// ScheduleTopicBubbleUpParams defines parameters for ScheduleTopicBubbleUp.
+type ScheduleTopicBubbleUpParams struct {
+	WaitingOn bool `form:"waiting_on,omitempty" json:"waiting_on,omitempty"`
+}
+
 // UpdateJournalEntryJSONRequestBody defines body for UpdateJournalEntry for application/json ContentType.
 type UpdateJournalEntryJSONRequestBody = UpdateJournalEntryRequestContent
 
@@ -1011,6 +1019,9 @@ type MarkPostingsUnseenJSONRequestBody = MarkPostingsRequestContent
 
 // CreateTopicMessageJSONRequestBody defines body for CreateTopicMessage for application/json ContentType.
 type CreateTopicMessageJSONRequestBody = CreateTopicMessageRequestContent
+
+// ScheduleTopicBubbleUpFormdataRequestBody defines body for ScheduleTopicBubbleUp for application/x-www-form-urlencoded ContentType.
+type ScheduleTopicBubbleUpFormdataRequestBody = ScheduleTopicBubbleUpInputPayload
 
 // RequestEditorFn is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -1310,6 +1321,9 @@ type ClientInterface interface {
 
 	CreateReply(ctx context.Context, entryId int64, body CreateReplyJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// MarkEntrySpam request
+	MarkEntrySpam(ctx context.Context, entryId int64, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// TrashEntry request
 	TrashEntry(ctx context.Context, entryId int64, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -1392,6 +1406,20 @@ type ClientInterface interface {
 	CreateTopicMessageWithBody(ctx context.Context, topicId int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	CreateTopicMessage(ctx context.Context, topicId int64, body CreateTopicMessageJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CancelTopicBubbleUp request
+	CancelTopicBubbleUp(ctx context.Context, topicId int64, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ScheduleTopicBubbleUpWithBody request with any body
+	ScheduleTopicBubbleUpWithBody(ctx context.Context, topicId int64, params *ScheduleTopicBubbleUpParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	ScheduleTopicBubbleUpWithFormdataBody(ctx context.Context, topicId int64, params *ScheduleTopicBubbleUpParams, body ScheduleTopicBubbleUpFormdataRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// BubbleUpTopicNow request
+	BubbleUpTopicNow(ctx context.Context, topicId int64, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RestoreTopic request
+	RestoreTopic(ctx context.Context, topicId int64, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 // ListBoxes is marked as idempotent and will be retried on transient failures.
@@ -1679,6 +1707,16 @@ func (c *Client) CreateReply(ctx context.Context, entryId int64, body CreateRepl
 		return nil, err
 	}
 	return c.Client.Do(req)
+
+}
+
+// MarkEntrySpam is marked as idempotent and will be retried on transient failures.
+
+func (c *Client) MarkEntrySpam(ctx context.Context, entryId int64, reqEditors ...RequestEditorFn) (*http.Response, error) {
+
+	return c.doWithRetry(ctx, func() (*http.Request, error) {
+		return NewMarkEntrySpamRequest(c.Server, entryId)
+	}, true, "MarkEntrySpam", reqEditors...)
 
 }
 
@@ -2049,6 +2087,72 @@ func (c *Client) CreateTopicMessage(ctx context.Context, topicId int64, body Cre
 		return nil, err
 	}
 	return c.Client.Do(req)
+
+}
+
+// CancelTopicBubbleUp is marked as idempotent and will be retried on transient failures.
+
+func (c *Client) CancelTopicBubbleUp(ctx context.Context, topicId int64, reqEditors ...RequestEditorFn) (*http.Response, error) {
+
+	return c.doWithRetry(ctx, func() (*http.Request, error) {
+		return NewCancelTopicBubbleUpRequest(c.Server, topicId)
+	}, true, "CancelTopicBubbleUp", reqEditors...)
+
+}
+
+// ScheduleTopicBubbleUpWithBody executes the ScheduleTopicBubbleUp operation.
+
+func (c *Client) ScheduleTopicBubbleUpWithBody(ctx context.Context, topicId int64, params *ScheduleTopicBubbleUpParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+
+	req, err := NewScheduleTopicBubbleUpRequestWithBody(c.Server, topicId, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+
+}
+
+func (c *Client) ScheduleTopicBubbleUpWithFormdataBody(ctx context.Context, topicId int64, params *ScheduleTopicBubbleUpParams, body ScheduleTopicBubbleUpFormdataRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+
+	req, err := NewScheduleTopicBubbleUpRequestWithFormdataBody(c.Server, topicId, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+
+}
+
+// BubbleUpTopicNow executes the BubbleUpTopicNow operation.
+
+func (c *Client) BubbleUpTopicNow(ctx context.Context, topicId int64, reqEditors ...RequestEditorFn) (*http.Response, error) {
+
+	req, err := NewBubbleUpTopicNowRequest(c.Server, topicId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+
+}
+
+// RestoreTopic is marked as idempotent and will be retried on transient failures.
+
+func (c *Client) RestoreTopic(ctx context.Context, topicId int64, reqEditors ...RequestEditorFn) (*http.Response, error) {
+
+	return c.doWithRetry(ctx, func() (*http.Request, error) {
+		return NewRestoreTopicRequest(c.Server, topicId)
+	}, true, "RestoreTopic", reqEditors...)
 
 }
 
@@ -2865,6 +2969,40 @@ func NewCreateReplyRequestWithBody(server string, entryId int64, contentType str
 	}
 
 	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewMarkEntrySpamRequest generates requests for MarkEntrySpam
+func NewMarkEntrySpamRequest(server string, entryId int64) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "entry_id", runtime.ParamLocationPath, entryId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/entries/%s/status/spam", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -3844,6 +3982,173 @@ func NewCreateTopicMessageRequestWithBody(server string, topicId int64, contentT
 	return req, nil
 }
 
+// NewCancelTopicBubbleUpRequest generates requests for CancelTopicBubbleUp
+func NewCancelTopicBubbleUpRequest(server string, topicId int64) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "topic_id", runtime.ParamLocationPath, topicId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/topics/%s/bubble_up", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewScheduleTopicBubbleUpRequestWithFormdataBody calls the generic ScheduleTopicBubbleUp builder with application/x-www-form-urlencoded body
+func NewScheduleTopicBubbleUpRequestWithFormdataBody(server string, topicId int64, params *ScheduleTopicBubbleUpParams, body ScheduleTopicBubbleUpFormdataRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	bodyStr, err := runtime.MarshalForm(body, nil)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = strings.NewReader(bodyStr.Encode())
+	return NewScheduleTopicBubbleUpRequestWithBody(server, topicId, params, "application/x-www-form-urlencoded", bodyReader)
+}
+
+// NewScheduleTopicBubbleUpRequestWithBody generates requests for ScheduleTopicBubbleUp with any type of body
+func NewScheduleTopicBubbleUpRequestWithBody(server string, topicId int64, params *ScheduleTopicBubbleUpParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "topic_id", runtime.ParamLocationPath, topicId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/topics/%s/bubble_up", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "waiting_on", runtime.ParamLocationQuery, params.WaitingOn); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewBubbleUpTopicNowRequest generates requests for BubbleUpTopicNow
+func NewBubbleUpTopicNowRequest(server string, topicId int64) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "topic_id", runtime.ParamLocationPath, topicId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/topics/%s/bubble_up_now", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewRestoreTopicRequest generates requests for RestoreTopic
+func NewRestoreTopicRequest(server string, topicId int64) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "topic_id", runtime.ParamLocationPath, topicId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/topics/%s/status/active", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 func (c *Client) applyEditors(ctx context.Context, req *http.Request, additionalEditors []RequestEditorFn) error {
 	for _, r := range c.RequestEditors {
 		if err := r(ctx, req); err != nil {
@@ -3890,6 +4195,7 @@ var operationMetadata = map[string]OperationMetadata{
 	"GetContact":             {Idempotent: true, HasSensitiveParams: false},
 	"ListDrafts":             {Idempotent: true, HasSensitiveParams: false},
 	"CreateReply":            {Idempotent: false, HasSensitiveParams: false},
+	"MarkEntrySpam":          {Idempotent: true, HasSensitiveParams: false},
 	"TrashEntry":             {Idempotent: true, HasSensitiveParams: false},
 	"GetFeedbox":             {Idempotent: true, HasSensitiveParams: false},
 	"GetIdentity":            {Idempotent: true, HasSensitiveParams: false},
@@ -3913,6 +4219,10 @@ var operationMetadata = map[string]OperationMetadata{
 	"GetTopic":               {Idempotent: true, HasSensitiveParams: false},
 	"GetTopicEntries":        {Idempotent: true, HasSensitiveParams: false},
 	"CreateTopicMessage":     {Idempotent: false, HasSensitiveParams: false},
+	"CancelTopicBubbleUp":    {Idempotent: true, HasSensitiveParams: false},
+	"ScheduleTopicBubbleUp":  {Idempotent: false, HasSensitiveParams: false},
+	"BubbleUpTopicNow":       {Idempotent: false, HasSensitiveParams: false},
+	"RestoreTopic":           {Idempotent: true, HasSensitiveParams: false},
 }
 
 // GetOperationMetadata returns metadata for the given operation ID.
@@ -4587,6 +4897,9 @@ type ClientWithResponsesInterface interface {
 
 	CreateReplyWithResponse(ctx context.Context, entryId int64, body CreateReplyJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateReplyResponse, error)
 
+	// MarkEntrySpamWithResponse request
+	MarkEntrySpamWithResponse(ctx context.Context, entryId int64, reqEditors ...RequestEditorFn) (*MarkEntrySpamResponse, error)
+
 	// TrashEntryWithResponse request
 	TrashEntryWithResponse(ctx context.Context, entryId int64, reqEditors ...RequestEditorFn) (*TrashEntryResponse, error)
 
@@ -4669,6 +4982,20 @@ type ClientWithResponsesInterface interface {
 	CreateTopicMessageWithBodyWithResponse(ctx context.Context, topicId int64, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateTopicMessageResponse, error)
 
 	CreateTopicMessageWithResponse(ctx context.Context, topicId int64, body CreateTopicMessageJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateTopicMessageResponse, error)
+
+	// CancelTopicBubbleUpWithResponse request
+	CancelTopicBubbleUpWithResponse(ctx context.Context, topicId int64, reqEditors ...RequestEditorFn) (*CancelTopicBubbleUpResponse, error)
+
+	// ScheduleTopicBubbleUpWithBodyWithResponse request with any body
+	ScheduleTopicBubbleUpWithBodyWithResponse(ctx context.Context, topicId int64, params *ScheduleTopicBubbleUpParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ScheduleTopicBubbleUpResponse, error)
+
+	ScheduleTopicBubbleUpWithFormdataBodyWithResponse(ctx context.Context, topicId int64, params *ScheduleTopicBubbleUpParams, body ScheduleTopicBubbleUpFormdataRequestBody, reqEditors ...RequestEditorFn) (*ScheduleTopicBubbleUpResponse, error)
+
+	// BubbleUpTopicNowWithResponse request
+	BubbleUpTopicNowWithResponse(ctx context.Context, topicId int64, reqEditors ...RequestEditorFn) (*BubbleUpTopicNowResponse, error)
+
+	// RestoreTopicWithResponse request
+	RestoreTopicWithResponse(ctx context.Context, topicId int64, reqEditors ...RequestEditorFn) (*RestoreTopicResponse, error)
 }
 
 type ListBoxesResponse struct {
@@ -5179,6 +5506,31 @@ func (r CreateReplyResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r CreateReplyResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type MarkEntrySpamResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON401      *UnauthorizedErrorResponseContent
+	JSON404      *NotFoundErrorResponseContent
+	JSON500      *InternalServerErrorResponseContent
+	JSON503      *ServiceUnavailableErrorResponseContent
+}
+
+// Status returns HTTPResponse.Status
+func (r MarkEntrySpamResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r MarkEntrySpamResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -5762,6 +6114,107 @@ func (r CreateTopicMessageResponse) StatusCode() int {
 	return 0
 }
 
+type CancelTopicBubbleUpResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON401      *UnauthorizedErrorResponseContent
+	JSON404      *NotFoundErrorResponseContent
+	JSON500      *InternalServerErrorResponseContent
+	JSON503      *ServiceUnavailableErrorResponseContent
+}
+
+// Status returns HTTPResponse.Status
+func (r CancelTopicBubbleUpResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CancelTopicBubbleUpResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ScheduleTopicBubbleUpResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON401      *UnauthorizedErrorResponseContent
+	JSON404      *NotFoundErrorResponseContent
+	JSON422      *UnprocessableEntityErrorResponseContent
+	JSON500      *InternalServerErrorResponseContent
+	JSON503      *ServiceUnavailableErrorResponseContent
+}
+
+// Status returns HTTPResponse.Status
+func (r ScheduleTopicBubbleUpResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ScheduleTopicBubbleUpResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type BubbleUpTopicNowResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON401      *UnauthorizedErrorResponseContent
+	JSON404      *NotFoundErrorResponseContent
+	JSON500      *InternalServerErrorResponseContent
+	JSON503      *ServiceUnavailableErrorResponseContent
+}
+
+// Status returns HTTPResponse.Status
+func (r BubbleUpTopicNowResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r BubbleUpTopicNowResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type RestoreTopicResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON401      *UnauthorizedErrorResponseContent
+	JSON404      *NotFoundErrorResponseContent
+	JSON500      *InternalServerErrorResponseContent
+	JSON503      *ServiceUnavailableErrorResponseContent
+}
+
+// Status returns HTTPResponse.Status
+func (r RestoreTopicResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RestoreTopicResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 // ListBoxesWithResponse request returning *ListBoxesResponse
 func (c *ClientWithResponses) ListBoxesWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListBoxesResponse, error) {
 	rsp, err := c.ListBoxes(ctx, reqEditors...)
@@ -5980,6 +6433,15 @@ func (c *ClientWithResponses) CreateReplyWithResponse(ctx context.Context, entry
 		return nil, err
 	}
 	return ParseCreateReplyResponse(rsp)
+}
+
+// MarkEntrySpamWithResponse request returning *MarkEntrySpamResponse
+func (c *ClientWithResponses) MarkEntrySpamWithResponse(ctx context.Context, entryId int64, reqEditors ...RequestEditorFn) (*MarkEntrySpamResponse, error) {
+	rsp, err := c.MarkEntrySpam(ctx, entryId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseMarkEntrySpamResponse(rsp)
 }
 
 // TrashEntryWithResponse request returning *TrashEntryResponse
@@ -6243,6 +6705,50 @@ func (c *ClientWithResponses) CreateTopicMessageWithResponse(ctx context.Context
 		return nil, err
 	}
 	return ParseCreateTopicMessageResponse(rsp)
+}
+
+// CancelTopicBubbleUpWithResponse request returning *CancelTopicBubbleUpResponse
+func (c *ClientWithResponses) CancelTopicBubbleUpWithResponse(ctx context.Context, topicId int64, reqEditors ...RequestEditorFn) (*CancelTopicBubbleUpResponse, error) {
+	rsp, err := c.CancelTopicBubbleUp(ctx, topicId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCancelTopicBubbleUpResponse(rsp)
+}
+
+// ScheduleTopicBubbleUpWithBodyWithResponse request with arbitrary body returning *ScheduleTopicBubbleUpResponse
+func (c *ClientWithResponses) ScheduleTopicBubbleUpWithBodyWithResponse(ctx context.Context, topicId int64, params *ScheduleTopicBubbleUpParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ScheduleTopicBubbleUpResponse, error) {
+	rsp, err := c.ScheduleTopicBubbleUpWithBody(ctx, topicId, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseScheduleTopicBubbleUpResponse(rsp)
+}
+
+func (c *ClientWithResponses) ScheduleTopicBubbleUpWithFormdataBodyWithResponse(ctx context.Context, topicId int64, params *ScheduleTopicBubbleUpParams, body ScheduleTopicBubbleUpFormdataRequestBody, reqEditors ...RequestEditorFn) (*ScheduleTopicBubbleUpResponse, error) {
+	rsp, err := c.ScheduleTopicBubbleUpWithFormdataBody(ctx, topicId, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseScheduleTopicBubbleUpResponse(rsp)
+}
+
+// BubbleUpTopicNowWithResponse request returning *BubbleUpTopicNowResponse
+func (c *ClientWithResponses) BubbleUpTopicNowWithResponse(ctx context.Context, topicId int64, reqEditors ...RequestEditorFn) (*BubbleUpTopicNowResponse, error) {
+	rsp, err := c.BubbleUpTopicNow(ctx, topicId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseBubbleUpTopicNowResponse(rsp)
+}
+
+// RestoreTopicWithResponse request returning *RestoreTopicResponse
+func (c *ClientWithResponses) RestoreTopicWithResponse(ctx context.Context, topicId int64, reqEditors ...RequestEditorFn) (*RestoreTopicResponse, error) {
+	rsp, err := c.RestoreTopic(ctx, topicId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRestoreTopicResponse(rsp)
 }
 
 // ParseListBoxesResponse parses an HTTP response from a ListBoxesWithResponse call
@@ -7263,6 +7769,53 @@ func ParseCreateReplyResponse(rsp *http.Response) (*CreateReplyResponse, error) 
 			return nil, err
 		}
 		response.JSON422 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest InternalServerErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest ServiceUnavailableErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseMarkEntrySpamResponse parses an HTTP response from a MarkEntrySpamWithResponse call
+func ParseMarkEntrySpamResponse(rsp *http.Response) (*MarkEntrySpamResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &MarkEntrySpamResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
 		var dest InternalServerErrorResponseContent
@@ -8358,6 +8911,201 @@ func ParseCreateTopicMessageResponse(rsp *http.Response) (*CreateTopicMessageRes
 			return nil, err
 		}
 		response.JSON422 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest InternalServerErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest ServiceUnavailableErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCancelTopicBubbleUpResponse parses an HTTP response from a CancelTopicBubbleUpWithResponse call
+func ParseCancelTopicBubbleUpResponse(rsp *http.Response) (*CancelTopicBubbleUpResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CancelTopicBubbleUpResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest InternalServerErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest ServiceUnavailableErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseScheduleTopicBubbleUpResponse parses an HTTP response from a ScheduleTopicBubbleUpWithResponse call
+func ParseScheduleTopicBubbleUpResponse(rsp *http.Response) (*ScheduleTopicBubbleUpResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ScheduleTopicBubbleUpResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest UnprocessableEntityErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON422 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest InternalServerErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest ServiceUnavailableErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseBubbleUpTopicNowResponse parses an HTTP response from a BubbleUpTopicNowWithResponse call
+func ParseBubbleUpTopicNowResponse(rsp *http.Response) (*BubbleUpTopicNowResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &BubbleUpTopicNowResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest InternalServerErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest ServiceUnavailableErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseRestoreTopicResponse parses an HTTP response from a RestoreTopicWithResponse call
+func ParseRestoreTopicResponse(rsp *http.Response) (*RestoreTopicResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RestoreTopicResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
 		var dest InternalServerErrorResponseContent

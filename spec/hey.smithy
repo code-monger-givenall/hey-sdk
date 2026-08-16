@@ -39,6 +39,7 @@ use smithy.api#readonly
 use smithy.api#idempotent
 use smithy.api#error
 use smithy.api#httpError
+use smithy.api#mediaType
 use smithy.api#retryable
 use smithy.api#sensitive
 use smithy.api#tags
@@ -75,23 +76,28 @@ service HEY {
         GetLaterbox
         GetBubblebox
 
-        // Topics (6 MVP)
+        // Topics (10 MVP)
         GetTopic
         GetTopicEntries
         GetSentTopics
         GetSpamTopics
         GetTrashTopics
         GetEverythingTopics
+        RestoreTopic
+        ScheduleTopicBubbleUp
+        CancelTopicBubbleUp
+        BubbleUpTopicNow
 
         // Messages (3 MVP)
         GetMessage
         CreateMessage
         CreateTopicMessage
 
-        // Entries (3 MVP)
+        // Entries (4 MVP)
         ListDrafts
         CreateReply
         TrashEntry
+        MarkEntrySpam
 
         // Contacts (2 MVP)
         ListContacts
@@ -1160,6 +1166,78 @@ structure GetEverythingTopicsOutput {
     response: TopicListResponse
 }
 
+/// Restore a topic to active mail.
+@idempotent
+@http(method: "PUT", uri: "/topics/{topic_id}/status/active")
+@tags(["Topics"])
+@heyRetry(maxAttempts: 2, baseDelayMs: 1000, backoff: "exponential", retryOn: [429, 503])
+operation RestoreTopic {
+    input: RestoreTopicInput
+    errors: [UnauthorizedError, NotFoundError, InternalServerError, ServiceUnavailableError]
+}
+
+structure RestoreTopicInput {
+    @httpLabel
+    @required
+    topic_id: Long
+}
+
+@mediaType("application/x-www-form-urlencoded")
+string BubbleUpFormDocument
+
+/// Schedule a topic to Bubble Up on a date.
+@http(method: "POST", uri: "/topics/{topic_id}/bubble_up")
+@tags(["Topics"])
+@heyRetry(maxAttempts: 2, baseDelayMs: 1000, backoff: "exponential", retryOn: [429, 503])
+operation ScheduleTopicBubbleUp {
+    input: ScheduleTopicBubbleUpInput
+    errors: [UnauthorizedError, NotFoundError, UnprocessableEntityError, InternalServerError, ServiceUnavailableError]
+}
+
+structure ScheduleTopicBubbleUpInput {
+    @httpLabel
+    @required
+    topic_id: Long
+
+    @httpQuery("waiting_on")
+    waiting_on: Boolean
+
+    @httpPayload
+    @required
+    body: BubbleUpFormDocument
+}
+
+/// Cancel a scheduled Bubble Up.
+@idempotent
+@http(method: "DELETE", uri: "/topics/{topic_id}/bubble_up")
+@tags(["Topics"])
+@heyRetry(maxAttempts: 2, baseDelayMs: 1000, backoff: "exponential", retryOn: [429, 503])
+operation CancelTopicBubbleUp {
+    input: CancelTopicBubbleUpInput
+    errors: [UnauthorizedError, NotFoundError, InternalServerError, ServiceUnavailableError]
+}
+
+structure CancelTopicBubbleUpInput {
+    @httpLabel
+    @required
+    topic_id: Long
+}
+
+/// Bubble a topic up immediately.
+@http(method: "POST", uri: "/topics/{topic_id}/bubble_up_now")
+@tags(["Topics"])
+@heyRetry(maxAttempts: 2, baseDelayMs: 1000, backoff: "exponential", retryOn: [429, 503])
+operation BubbleUpTopicNow {
+    input: BubbleUpTopicNowInput
+    errors: [UnauthorizedError, NotFoundError, InternalServerError, ServiceUnavailableError]
+}
+
+structure BubbleUpTopicNowInput {
+    @httpLabel
+    @required
+    topic_id: Long
+}
+
 // =============================================================================
 // MESSAGE OPERATIONS
 // =============================================================================
@@ -1330,6 +1408,22 @@ operation TrashEntry {
 }
 
 structure TrashEntryInput {
+    @httpLabel
+    @required
+    entry_id: Long
+}
+
+/// Mark an entry as spam.
+@idempotent
+@http(method: "PUT", uri: "/entries/{entry_id}/status/spam")
+@tags(["Entries"])
+@heyRetry(maxAttempts: 2, baseDelayMs: 1000, backoff: "exponential", retryOn: [429, 503])
+operation MarkEntrySpam {
+    input: MarkEntrySpamInput
+    errors: [UnauthorizedError, NotFoundError, InternalServerError, ServiceUnavailableError]
+}
+
+structure MarkEntrySpamInput {
     @httpLabel
     @required
     entry_id: Long

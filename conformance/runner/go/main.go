@@ -788,6 +788,29 @@ func executeOperation(client *generated.Client, ctx context.Context, tc TestCase
 		return client.GetTrashTopics(ctx, nil)
 	case "GetEverythingTopics":
 		return client.GetEverythingTopics(ctx, nil)
+	case "RestoreTopic":
+		topicId := getInt64Param(tc.PathParams, "topic_id")
+		return client.RestoreTopic(ctx, topicId)
+	case "ScheduleTopicBubbleUp":
+		topicId := getInt64Param(tc.PathParams, "topic_id")
+		var params *generated.ScheduleTopicBubbleUpParams
+		if waitingOn, ok := tc.QueryParams["waiting_on"].(bool); ok && waitingOn {
+			params = &generated.ScheduleTopicBubbleUpParams{WaitingOn: true}
+		}
+		form := url.Values{"date": {getStringParam(tc.RequestBody, "date")}}
+		return client.ScheduleTopicBubbleUpWithBody(
+			ctx,
+			topicId,
+			params,
+			"application/x-www-form-urlencoded",
+			strings.NewReader(form.Encode()),
+		)
+	case "CancelTopicBubbleUp":
+		topicId := getInt64Param(tc.PathParams, "topic_id")
+		return client.CancelTopicBubbleUp(ctx, topicId)
+	case "BubbleUpTopicNow":
+		topicId := getInt64Param(tc.PathParams, "topic_id")
+		return client.BubbleUpTopicNow(ctx, topicId)
 
 	// Messages
 	case "GetMessage":
@@ -824,6 +847,9 @@ func executeOperation(client *generated.Client, ctx context.Context, tc TestCase
 	case "TrashEntry":
 		entryId := getInt64Param(tc.PathParams, "entry_id")
 		return client.TrashEntry(ctx, entryId)
+	case "MarkEntrySpam":
+		entryId := getInt64Param(tc.PathParams, "entry_id")
+		return client.MarkEntrySpam(ctx, entryId)
 
 	// Contacts
 	case "ListContacts":

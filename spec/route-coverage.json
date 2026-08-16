@@ -1,6 +1,16 @@
 [
   {
     "method": "POST",
+    "operationId": "BubbleUpTopicNow",
+    "path": "/topics/{topic_id}/bubble_up_now"
+  },
+  {
+    "method": "DELETE",
+    "operationId": "CancelTopicBubbleUp",
+    "path": "/topics/{topic_id}/bubble_up"
+  },
+  {
+    "method": "POST",
     "operationId": "CompleteCalendarTodo",
     "path": "/calendar/todos/{todoId}/completions"
   },
@@ -160,6 +170,11 @@
     "path": "/entries/drafts.json"
   },
   {
+    "method": "PUT",
+    "operationId": "MarkEntrySpam",
+    "path": "/entries/{entry_id}/status/spam"
+  },
+  {
     "method": "POST",
     "operationId": "MarkPostingsSeen",
     "path": "/postings/seen.json"
@@ -173,6 +188,16 @@
     "method": "POST",
     "operationId": "MovePostings",
     "path": "/postings/moves"
+  },
+  {
+    "method": "PUT",
+    "operationId": "RestoreTopic",
+    "path": "/topics/{topic_id}/status/active"
+  },
+  {
+    "method": "POST",
+    "operationId": "ScheduleTopicBubbleUp",
+    "path": "/topics/{topic_id}/bubble_up"
   },
   {
     "method": "GET",

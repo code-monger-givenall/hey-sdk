@@ -1825,11 +1825,6 @@
     "reason": "phase-2: entry spam reports"
   },
   {
-    "method": "PUT",
-    "path": "/entries/{entry_id}/status/spam",
-    "reason": "phase-2: entry spam reports"
-  },
-  {
     "method": "GET",
     "path": "/folders",
     "reason": "phase-2: folder management"
@@ -3500,16 +3495,6 @@
     "reason": "phase-2: topic breakout threads"
   },
   {
-    "method": "DELETE",
-    "path": "/topics/{topic_id}/bubble_up",
-    "reason": "phase-2: topic bubble up"
-  },
-  {
-    "method": "POST",
-    "path": "/topics/{topic_id}/bubble_up",
-    "reason": "phase-2: topic bubble up"
-  },
-  {
     "method": "GET",
     "path": "/topics/{topic_id}/bubble_up/menu",
     "reason": "phase-2: topic bubble up"
@@ -3526,11 +3511,6 @@
   },
   {
     "method": "PATCH",
-    "path": "/topics/{topic_id}/bubble_up_now",
-    "reason": "phase-2: topic bubble up"
-  },
-  {
-    "method": "POST",
     "path": "/topics/{topic_id}/bubble_up_now",
     "reason": "phase-2: topic bubble up"
   },
@@ -3813,11 +3793,6 @@
     "method": "GET",
     "path": "/topics/{topic_id}/roster",
     "reason": "phase-2: topic roster"
-  },
-  {
-    "method": "PUT",
-    "path": "/topics/{topic_id}/status/active",
-    "reason": "phase-2: topic status changes"
   },
   {
     "method": "PUT",

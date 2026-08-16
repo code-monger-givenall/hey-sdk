@@ -2,6 +2,32 @@
   "$schema": "https://hey.com/schemas/behavior-model.json",
   "generated": true,
   "operations": {
+    "BubbleUpTopicNow": {
+      "idempotent": false,
+      "readonly": false,
+      "retry": {
+        "backoff": "exponential",
+        "base_delay_ms": 1000,
+        "max": 2,
+        "retry_on": [
+          429,
+          503
+        ]
+      }
+    },
+    "CancelTopicBubbleUp": {
+      "idempotent": true,
+      "readonly": false,
+      "retry": {
+        "backoff": "exponential",
+        "base_delay_ms": 1000,
+        "max": 2,
+        "retry_on": [
+          429,
+          503
+        ]
+      }
+    },
     "CompleteCalendarTodo": {
       "idempotent": true,
       "readonly": false,
@@ -456,6 +482,19 @@
         ]
       }
     },
+    "MarkEntrySpam": {
+      "idempotent": true,
+      "readonly": false,
+      "retry": {
+        "backoff": "exponential",
+        "base_delay_ms": 1000,
+        "max": 2,
+        "retry_on": [
+          429,
+          503
+        ]
+      }
+    },
     "MarkPostingsSeen": {
       "idempotent": false,
       "readonly": false,
@@ -483,6 +522,32 @@
       }
     },
     "MovePostings": {
+      "idempotent": false,
+      "readonly": false,
+      "retry": {
+        "backoff": "exponential",
+        "base_delay_ms": 1000,
+        "max": 2,
+        "retry_on": [
+          429,
+          503
+        ]
+      }
+    },
+    "RestoreTopic": {
+      "idempotent": true,
+      "readonly": false,
+      "retry": {
+        "backoff": "exponential",
+        "base_delay_ms": 1000,
+        "max": 2,
+        "retry_on": [
+          429,
+          503
+        ]
+      }
+    },
+    "ScheduleTopicBubbleUp": {
       "idempotent": false,
       "readonly": false,
       "retry": {

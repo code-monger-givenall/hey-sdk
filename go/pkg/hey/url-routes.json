@@ -185,6 +185,19 @@
       }
     },
     {
+      "pattern": "/entries/{entry_id}/status/spam",
+      "resource": "Entries",
+      "operations": {
+        "PUT": "MarkEntrySpam"
+      },
+      "params": {
+        "entry_id": {
+          "role": "parent",
+          "type": "int64"
+        }
+      }
+    },
+    {
       "pattern": "/entries/{entry_id}/status/trashed",
       "resource": "Entries",
       "operations": {
@@ -388,6 +401,46 @@
       },
       "params": {
         "topicId": {
+          "role": "parent",
+          "type": "int64"
+        }
+      }
+    },
+    {
+      "pattern": "/topics/{topic_id}/bubble_up",
+      "resource": "Topics",
+      "operations": {
+        "DELETE": "CancelTopicBubbleUp",
+        "POST": "ScheduleTopicBubbleUp"
+      },
+      "params": {
+        "topic_id": {
+          "role": "parent",
+          "type": "int64"
+        }
+      }
+    },
+    {
+      "pattern": "/topics/{topic_id}/bubble_up_now",
+      "resource": "Topics",
+      "operations": {
+        "POST": "BubbleUpTopicNow"
+      },
+      "params": {
+        "topic_id": {
+          "role": "parent",
+          "type": "int64"
+        }
+      }
+    },
+    {
+      "pattern": "/topics/{topic_id}/status/active",
+      "resource": "Topics",
+      "operations": {
+        "PUT": "RestoreTopic"
+      },
+      "params": {
+        "topic_id": {
           "role": "parent",
           "type": "int64"
         }

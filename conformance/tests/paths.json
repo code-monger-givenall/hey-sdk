@@ -645,5 +645,92 @@
       {"type": "noError"}
     ],
     "tags": ["path", "calendar-time-tracks"]
+  },
+  {
+    "name": "RestoreTopic uses /topics/{topic_id}/status/active path",
+    "description": "Verifies that RestoreTopic constructs the active-status topic path",
+    "operation": "RestoreTopic",
+    "method": "PUT",
+    "path": "/topics/{topic_id}/status/active",
+    "pathParams": {"topic_id": 456},
+    "mockResponses": [
+      {"status": 200, "body": {}}
+    ],
+    "assertions": [
+      {"type": "requestMethod", "expected": "PUT"},
+      {"type": "requestPath", "expected": "/topics/456/status/active"},
+      {"type": "noError"}
+    ],
+    "tags": ["path", "topics"]
+  },
+  {
+    "name": "ScheduleTopicBubbleUp uses /topics/{topic_id}/bubble_up path",
+    "description": "Verifies that ScheduleTopicBubbleUp constructs the topic Bubble Up path",
+    "operation": "ScheduleTopicBubbleUp",
+    "method": "POST",
+    "path": "/topics/{topic_id}/bubble_up",
+    "pathParams": {"topic_id": 456},
+    "queryParams": {"waiting_on": true},
+    "requestBody": {"date": "2026-08-20"},
+    "mockResponses": [
+      {"status": 200, "body": {}}
+    ],
+    "assertions": [
+      {"type": "requestMethod", "expected": "POST"},
+      {"type": "requestPath", "expected": "/topics/456/bubble_up"},
+      {"type": "noError"}
+    ],
+    "tags": ["path", "topics"]
+  },
+  {
+    "name": "CancelTopicBubbleUp uses /topics/{topic_id}/bubble_up path",
+    "description": "Verifies that CancelTopicBubbleUp constructs the topic Bubble Up path",
+    "operation": "CancelTopicBubbleUp",
+    "method": "DELETE",
+    "path": "/topics/{topic_id}/bubble_up",
+    "pathParams": {"topic_id": 456},
+    "mockResponses": [
+      {"status": 200, "body": {}}
+    ],
+    "assertions": [
+      {"type": "requestMethod", "expected": "DELETE"},
+      {"type": "requestPath", "expected": "/topics/456/bubble_up"},
+      {"type": "noError"}
+    ],
+    "tags": ["path", "topics"]
+  },
+  {
+    "name": "BubbleUpTopicNow uses /topics/{topic_id}/bubble_up_now path",
+    "description": "Verifies that BubbleUpTopicNow constructs the immediate Bubble Up path",
+    "operation": "BubbleUpTopicNow",
+    "method": "POST",
+    "path": "/topics/{topic_id}/bubble_up_now",
+    "pathParams": {"topic_id": 456},
+    "mockResponses": [
+      {"status": 200, "body": {}}
+    ],
+    "assertions": [
+      {"type": "requestMethod", "expected": "POST"},
+      {"type": "requestPath", "expected": "/topics/456/bubble_up_now"},
+      {"type": "noError"}
+    ],
+    "tags": ["path", "topics"]
+  },
+  {
+    "name": "MarkEntrySpam uses /entries/{entry_id}/status/spam path",
+    "description": "Verifies that MarkEntrySpam constructs the spam-status entry path",
+    "operation": "MarkEntrySpam",
+    "method": "PUT",
+    "path": "/entries/{entry_id}/status/spam",
+    "pathParams": {"entry_id": 456},
+    "mockResponses": [
+      {"status": 200, "body": {}}
+    ],
+    "assertions": [
+      {"type": "requestMethod", "expected": "PUT"},
+      {"type": "requestPath", "expected": "/entries/456/status/spam"},
+      {"type": "noError"}
+    ],
+    "tags": ["path", "entries"]
   }
 ]

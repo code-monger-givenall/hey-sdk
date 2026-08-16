@@ -113,3 +113,30 @@ func (s *EntriesService) Trash(ctx context.Context, entryID int64) (err error) {
 	}
 	return CheckResponse(resp.HTTPResponse)
 }
+
+// MarkSpam marks an entry as spam.
+func (s *EntriesService) MarkSpam(ctx context.Context, entryID int64) (err error) {
+	if entryID <= 0 {
+		return fmt.Errorf("entry ID must be positive")
+	}
+
+	op := OperationInfo{
+		Service: "Entries", Operation: "MarkEntrySpam",
+		ResourceType: "entry", IsMutation: true, ResourceID: entryID,
+	}
+	if gater, ok := s.client.hooks.(GatingHooks); ok {
+		if ctx, err = gater.OnOperationGate(ctx, op); err != nil {
+			return
+		}
+	}
+	start := time.Now()
+	ctx = s.client.hooks.OnOperationStart(ctx, op)
+	defer func() { s.client.hooks.OnOperationEnd(ctx, op, err, time.Since(start)) }()
+
+	s.client.initGeneratedClient()
+	resp, err := s.client.gen.MarkEntrySpamWithResponse(ctx, entryID)
+	if err != nil {
+		return err
+	}
+	return checkMutationResponse(resp.HTTPResponse)
+}

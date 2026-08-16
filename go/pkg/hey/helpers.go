@@ -34,6 +34,13 @@ func CheckResponse(resp *http.Response) error {
 	}
 }
 
+func checkMutationResponse(resp *http.Response) error {
+	if resp != nil && (resp.StatusCode == http.StatusFound || resp.StatusCode == http.StatusSeeOther) {
+		return nil
+	}
+	return CheckResponse(resp)
+}
+
 // checkResponseEmptyOn converts HTTP response errors to SDK errors, but returns
 // nil for the specified status codes (treating them as "empty" rather than error).
 // Used for operations like GetOngoingTimeTrack where 404 means "no active track"
