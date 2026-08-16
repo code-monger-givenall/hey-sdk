@@ -139,6 +139,7 @@ func runTest(tc TestCase) TestResult {
 	var mu sync.Mutex
 	var requestCount int
 	var requestTimes []time.Time
+	var requestMethods []string
 	var requestPaths []string
 	var requestHeaders []http.Header
 	var responseStatuses []int
@@ -149,6 +150,7 @@ func runTest(tc TestCase) TestResult {
 		mu.Lock()
 		requestCount++
 		requestTimes = append(requestTimes, time.Now())
+		requestMethods = append(requestMethods, r.Method)
 		requestPaths = append(requestPaths, r.URL.Path)
 		requestHeaders = append(requestHeaders, r.Header.Clone())
 		idx := responseIndex
@@ -263,6 +265,7 @@ func runTest(tc TestCase) TestResult {
 			operation:         tc.Operation,
 			requestCount:      requestCount,
 			requestTimes:      requestTimes,
+			requestMethods:    requestMethods,
 			requestPaths:      requestPaths,
 			requestHeaders:    requestHeaders,
 			lastStatus:        lastStatus,
@@ -349,6 +352,7 @@ type checkState struct {
 	operation         string
 	requestCount      int
 	requestTimes      []time.Time
+	requestMethods    []string
 	requestPaths      []string
 	requestHeaders    []http.Header
 	lastStatus        int
@@ -470,6 +474,18 @@ func checkAssertion(testName string, a Assertion, s checkState) TestResult {
 		}
 		if s.requestPaths[0] != expected {
 			return fail(testName, "Expected request path %q, got %q", expected, s.requestPaths[0])
+		}
+
+	case "requestMethod":
+		expected, ok := a.Expected.(string)
+		if !ok {
+			return fail(testName, "requestMethod: expected a string value, got %T", a.Expected)
+		}
+		if len(s.requestMethods) == 0 {
+			return fail(testName, "Expected a request, but none were recorded")
+		}
+		if s.requestMethods[0] != expected {
+			return fail(testName, "Expected request method %q, got %q", expected, s.requestMethods[0])
 		}
 
 	case "headerPresent":
@@ -805,6 +821,9 @@ func executeOperation(client *generated.Client, ctx context.Context, tc TestCase
 			},
 		}
 		return client.CreateReply(ctx, entryId, body)
+	case "TrashEntry":
+		entryId := getInt64Param(tc.PathParams, "entry_id")
+		return client.TrashEntry(ctx, entryId)
 
 	// Contacts
 	case "ListContacts":
@@ -891,24 +910,24 @@ func executeOperation(client *generated.Client, ctx context.Context, tc TestCase
 			PostingIds: getInt64SliceParam(tc.RequestBody, "posting_ids"),
 		}
 		return client.MarkPostingsUnseen(ctx, body)
-	case "MovePostingToFeed":
-		postingId := getInt64Param(tc.PathParams, "postingId")
-		return client.MovePostingToFeed(ctx, postingId)
-	case "MovePostingToSetAside":
-		postingId := getInt64Param(tc.PathParams, "postingId")
-		return client.MovePostingToSetAside(ctx, postingId)
-	case "MovePostingToReplyLater":
-		postingId := getInt64Param(tc.PathParams, "postingId")
-		return client.MovePostingToReplyLater(ctx, postingId)
-	case "MovePostingToPaperTrail":
-		postingId := getInt64Param(tc.PathParams, "postingId")
-		return client.MovePostingToPaperTrail(ctx, postingId)
-	case "MovePostingToTrash":
-		postingId := getInt64Param(tc.PathParams, "postingId")
-		return client.MovePostingToTrash(ctx, postingId)
-	case "IgnorePosting":
-		postingId := getInt64Param(tc.PathParams, "postingId")
-		return client.IgnorePosting(ctx, postingId)
+	case "MovePostings":
+		params := &generated.MovePostingsParams{
+			BoxId: getInt64Param(tc.QueryParams, "box_id"),
+		}
+		body := generated.MovePostingsJSONRequestBody{
+			PostingIds: getInt64SliceParam(tc.RequestBody, "posting_ids"),
+		}
+		return client.MovePostings(ctx, params, body)
+	case "TrashPostings":
+		body := generated.TrashPostingsJSONRequestBody{
+			PostingIds: getInt64SliceParam(tc.RequestBody, "posting_ids"),
+		}
+		return client.TrashPostings(ctx, body)
+	case "IgnorePostings":
+		body := generated.IgnorePostingsJSONRequestBody{
+			PostingIds: getInt64SliceParam(tc.RequestBody, "posting_ids"),
+		}
+		return client.IgnorePostings(ctx, body)
 
 	default:
 		return nil, fmt.Errorf("unknown operation: %s", tc.Operation)

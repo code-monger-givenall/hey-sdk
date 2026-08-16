@@ -379,7 +379,7 @@
         ]
       }
     },
-    "IgnorePosting": {
+    "IgnorePostings": {
       "idempotent": false,
       "readonly": false,
       "retry": {
@@ -482,59 +482,7 @@
         ]
       }
     },
-    "MovePostingToFeed": {
-      "idempotent": false,
-      "readonly": false,
-      "retry": {
-        "backoff": "exponential",
-        "base_delay_ms": 1000,
-        "max": 2,
-        "retry_on": [
-          429,
-          503
-        ]
-      }
-    },
-    "MovePostingToPaperTrail": {
-      "idempotent": false,
-      "readonly": false,
-      "retry": {
-        "backoff": "exponential",
-        "base_delay_ms": 1000,
-        "max": 2,
-        "retry_on": [
-          429,
-          503
-        ]
-      }
-    },
-    "MovePostingToReplyLater": {
-      "idempotent": false,
-      "readonly": false,
-      "retry": {
-        "backoff": "exponential",
-        "base_delay_ms": 1000,
-        "max": 2,
-        "retry_on": [
-          429,
-          503
-        ]
-      }
-    },
-    "MovePostingToSetAside": {
-      "idempotent": false,
-      "readonly": false,
-      "retry": {
-        "backoff": "exponential",
-        "base_delay_ms": 1000,
-        "max": 2,
-        "retry_on": [
-          429,
-          503
-        ]
-      }
-    },
-    "MovePostingToTrash": {
+    "MovePostings": {
       "idempotent": false,
       "readonly": false,
       "retry": {
@@ -565,6 +513,32 @@
       }
     },
     "StartTimeTrack": {
+      "idempotent": false,
+      "readonly": false,
+      "retry": {
+        "backoff": "exponential",
+        "base_delay_ms": 1000,
+        "max": 2,
+        "retry_on": [
+          429,
+          503
+        ]
+      }
+    },
+    "TrashEntry": {
+      "idempotent": true,
+      "readonly": false,
+      "retry": {
+        "backoff": "exponential",
+        "base_delay_ms": 1000,
+        "max": 2,
+        "retry_on": [
+          429,
+          503
+        ]
+      }
+    },
+    "TrashPostings": {
       "idempotent": false,
       "readonly": false,
       "retry": {

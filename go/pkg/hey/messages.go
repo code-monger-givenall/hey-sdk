@@ -121,6 +121,6 @@ func (s *MessagesService) CreateTopicMessage(ctx context.Context, topicID int64,
 		},
 	}
 
-	_, err = s.client.PostMutation(ctx, fmt.Sprintf("/topics/%d/entries.json", topicID), body)
+	_, err = s.client.PostMutation(ctx, fmt.Sprintf("/topics/%d/messages", topicID), body)
 	return err
 }

@@ -81,21 +81,90 @@
     "tags": ["path", "entries"]
   },
   {
-    "name": "CreateTopicMessage uses /topics/{topicId}/entries.json path",
-    "description": "Verifies that CreateTopicMessage constructs the URL path /topics/{topicId}/entries.json",
+    "name": "TrashEntry uses /entries/{entry_id}/status/trashed path",
+    "description": "Verifies that TrashEntry constructs the URL path /entries/{entry_id}/status/trashed",
+    "operation": "TrashEntry",
+    "method": "PUT",
+    "path": "/entries/{entry_id}/status/trashed",
+    "pathParams": {"entry_id": 456},
+    "mockResponses": [
+      {"status": 200, "body": {}}
+    ],
+    "assertions": [
+      {"type": "requestMethod", "expected": "PUT"},
+      {"type": "requestPath", "expected": "/entries/456/status/trashed"},
+      {"type": "noError"}
+    ],
+    "tags": ["path", "entries"]
+  },
+  {
+    "name": "CreateTopicMessage uses /topics/{topicId}/messages path",
+    "description": "Verifies that CreateTopicMessage constructs the URL path /topics/{topicId}/messages",
     "operation": "CreateTopicMessage",
     "method": "POST",
-    "path": "/topics/{topicId}/entries.json",
+    "path": "/topics/{topicId}/messages",
     "pathParams": {"topicId": 456},
     "requestBody": {"content": "Topic reply"},
     "mockResponses": [
       {"status": 200, "body": {"id": 789, "content": "Topic reply"}}
     ],
     "assertions": [
-      {"type": "requestPath", "expected": "/topics/456/entries.json"},
+      {"type": "requestPath", "expected": "/topics/456/messages"},
       {"type": "noError"}
     ],
     "tags": ["path", "topics"]
+  },
+  {
+    "name": "MovePostings uses /postings/moves path",
+    "description": "Verifies that MovePostings constructs the URL path /postings/moves",
+    "operation": "MovePostings",
+    "method": "POST",
+    "path": "/postings/moves",
+    "queryParams": {"box_id": 123},
+    "requestBody": {"posting_ids": [456, 789]},
+    "mockResponses": [
+      {"status": 200, "body": {}}
+    ],
+    "assertions": [
+      {"type": "requestMethod", "expected": "POST"},
+      {"type": "requestPath", "expected": "/postings/moves"},
+      {"type": "noError"}
+    ],
+    "tags": ["path", "postings"]
+  },
+  {
+    "name": "TrashPostings uses /postings/trash path",
+    "description": "Verifies that TrashPostings constructs the URL path /postings/trash",
+    "operation": "TrashPostings",
+    "method": "POST",
+    "path": "/postings/trash",
+    "requestBody": {"posting_ids": [456, 789]},
+    "mockResponses": [
+      {"status": 200, "body": {}}
+    ],
+    "assertions": [
+      {"type": "requestMethod", "expected": "POST"},
+      {"type": "requestPath", "expected": "/postings/trash"},
+      {"type": "noError"}
+    ],
+    "tags": ["path", "postings"]
+  },
+  {
+    "name": "IgnorePostings uses /postings/mutings path",
+    "description": "Verifies that IgnorePostings constructs the URL path /postings/mutings",
+    "operation": "IgnorePostings",
+    "method": "POST",
+    "path": "/postings/mutings",
+    "requestBody": {"posting_ids": [456]},
+    "mockResponses": [
+      {"status": 200, "body": {}}
+    ],
+    "assertions": [
+      {"type": "requestMethod", "expected": "POST"},
+      {"type": "requestPath", "expected": "/postings/mutings"},
+      {"type": "noError"}
+    ],
+    "tags": ["path", "postings"]
   },
   {
     "name": "DeleteCalendarTodo uses /calendar/todos/{todoId} path",

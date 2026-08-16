@@ -22,7 +22,7 @@
   {
     "method": "POST",
     "operationId": "CreateReply",
-    "path": "/entries/{entryId}/replies"
+    "path": "/entries/{entryId}/replies.json"
   },
   {
     "method": "POST",
@@ -135,6 +135,11 @@
     "path": "/topics/trash.json"
   },
   {
+    "method": "POST",
+    "operationId": "IgnorePostings",
+    "path": "/postings/mutings"
+  },
+  {
     "method": "GET",
     "operationId": "ListBoxes",
     "path": "/boxes.json"
@@ -155,6 +160,21 @@
     "path": "/entries/drafts.json"
   },
   {
+    "method": "POST",
+    "operationId": "MarkPostingsSeen",
+    "path": "/postings/seen.json"
+  },
+  {
+    "method": "POST",
+    "operationId": "MarkPostingsUnseen",
+    "path": "/postings/unseen.json"
+  },
+  {
+    "method": "POST",
+    "operationId": "MovePostings",
+    "path": "/postings/moves"
+  },
+  {
     "method": "GET",
     "operationId": "Search",
     "path": "/search.json"
@@ -163,6 +183,16 @@
     "method": "POST",
     "operationId": "StartTimeTrack",
     "path": "/calendar/ongoing_time_track.json"
+  },
+  {
+    "method": "PUT",
+    "operationId": "TrashEntry",
+    "path": "/entries/{entry_id}/status/trashed"
+  },
+  {
+    "method": "POST",
+    "operationId": "TrashPostings",
+    "path": "/postings/trash"
   },
   {
     "method": "DELETE",

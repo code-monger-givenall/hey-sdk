@@ -405,6 +405,11 @@ type Identity struct {
 	TimeZoneOffset int32    `json:"time_zone_offset,omitempty"`
 }
 
+// IgnorePostingsRequestContent defines model for IgnorePostingsRequestContent.
+type IgnorePostingsRequestContent struct {
+	PostingIds []int64 `json:"posting_ids"`
+}
+
 // InternalServerErrorResponseContent defines model for InternalServerErrorResponseContent.
 type InternalServerErrorResponseContent struct {
 	Message string `json:"message"`
@@ -493,6 +498,11 @@ type MessagePayload struct {
 // MessagePostingContext MessagePostingContext — posting context for a message
 type MessagePostingContext struct {
 	Box string `json:"box,omitempty"`
+}
+
+// MovePostingsRequestContent defines model for MovePostingsRequestContent.
+type MovePostingsRequestContent struct {
+	PostingIds []int64 `json:"posting_ids"`
 }
 
 // NavigationIcon NavigationIcon
@@ -779,6 +789,11 @@ type TopicMessagePayload struct {
 	Content string `json:"content"`
 }
 
+// TrashPostingsRequestContent defines model for TrashPostingsRequestContent.
+type TrashPostingsRequestContent struct {
+	PostingIds []int64 `json:"posting_ids"`
+}
+
 // UnauthorizedErrorResponseContent defines model for UnauthorizedErrorResponseContent.
 type UnauthorizedErrorResponseContent struct {
 	Message string `json:"message"`
@@ -915,6 +930,11 @@ type GetTrailboxParams struct {
 	Page string `form:"page,omitempty" json:"page,omitempty"`
 }
 
+// MovePostingsParams defines parameters for MovePostings.
+type MovePostingsParams struct {
+	BoxId int64 `form:"box_id" json:"box_id"`
+}
+
 // GetLaterboxParams defines parameters for GetLaterbox.
 type GetLaterboxParams struct {
 	Page string `form:"page,omitempty" json:"page,omitempty"`
@@ -974,8 +994,17 @@ type CreateReplyJSONRequestBody = CreateReplyRequestContent
 // CreateMessageJSONRequestBody defines body for CreateMessage for application/json ContentType.
 type CreateMessageJSONRequestBody = CreateMessageRequestContent
 
+// MovePostingsJSONRequestBody defines body for MovePostings for application/json ContentType.
+type MovePostingsJSONRequestBody = MovePostingsRequestContent
+
+// IgnorePostingsJSONRequestBody defines body for IgnorePostings for application/json ContentType.
+type IgnorePostingsJSONRequestBody = IgnorePostingsRequestContent
+
 // MarkPostingsSeenJSONRequestBody defines body for MarkPostingsSeen for application/json ContentType.
 type MarkPostingsSeenJSONRequestBody = MarkPostingsRequestContent
+
+// TrashPostingsJSONRequestBody defines body for TrashPostings for application/json ContentType.
+type TrashPostingsJSONRequestBody = TrashPostingsRequestContent
 
 // MarkPostingsUnseenJSONRequestBody defines body for MarkPostingsUnseen for application/json ContentType.
 type MarkPostingsUnseenJSONRequestBody = MarkPostingsRequestContent
@@ -1281,6 +1310,9 @@ type ClientInterface interface {
 
 	CreateReply(ctx context.Context, entryId int64, body CreateReplyJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// TrashEntry request
+	TrashEntry(ctx context.Context, entryId int64, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetFeedbox request
 	GetFeedbox(ctx context.Context, params *GetFeedboxParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -1304,33 +1336,30 @@ type ClientInterface interface {
 	// GetTrailbox request
 	GetTrailbox(ctx context.Context, params *GetTrailboxParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// MovePostingsWithBody request with any body
+	MovePostingsWithBody(ctx context.Context, params *MovePostingsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	MovePostings(ctx context.Context, params *MovePostingsParams, body MovePostingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// IgnorePostingsWithBody request with any body
+	IgnorePostingsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	IgnorePostings(ctx context.Context, body IgnorePostingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// MarkPostingsSeenWithBody request with any body
 	MarkPostingsSeenWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	MarkPostingsSeen(ctx context.Context, body MarkPostingsSeenJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// TrashPostingsWithBody request with any body
+	TrashPostingsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	TrashPostings(ctx context.Context, body TrashPostingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// MarkPostingsUnseenWithBody request with any body
 	MarkPostingsUnseenWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	MarkPostingsUnseen(ctx context.Context, body MarkPostingsUnseenJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// IgnorePosting request
-	IgnorePosting(ctx context.Context, postingId int64, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// MovePostingToSetAside request
-	MovePostingToSetAside(ctx context.Context, postingId int64, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// MovePostingToFeed request
-	MovePostingToFeed(ctx context.Context, postingId int64, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// MovePostingToReplyLater request
-	MovePostingToReplyLater(ctx context.Context, postingId int64, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// MovePostingToPaperTrail request
-	MovePostingToPaperTrail(ctx context.Context, postingId int64, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// MovePostingToTrash request
-	MovePostingToTrash(ctx context.Context, postingId int64, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetLaterbox request
 	GetLaterbox(ctx context.Context, params *GetLaterboxParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1653,6 +1682,16 @@ func (c *Client) CreateReply(ctx context.Context, entryId int64, body CreateRepl
 
 }
 
+// TrashEntry is marked as idempotent and will be retried on transient failures.
+
+func (c *Client) TrashEntry(ctx context.Context, entryId int64, reqEditors ...RequestEditorFn) (*http.Response, error) {
+
+	return c.doWithRetry(ctx, func() (*http.Request, error) {
+		return NewTrashEntryRequest(c.Server, entryId)
+	}, true, "TrashEntry", reqEditors...)
+
+}
+
 // GetFeedbox is marked as idempotent and will be retried on transient failures.
 
 func (c *Client) GetFeedbox(ctx context.Context, params *GetFeedboxParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -1743,6 +1782,66 @@ func (c *Client) GetTrailbox(ctx context.Context, params *GetTrailboxParams, req
 
 }
 
+// MovePostingsWithBody executes the MovePostings operation.
+
+func (c *Client) MovePostingsWithBody(ctx context.Context, params *MovePostingsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+
+	req, err := NewMovePostingsRequestWithBody(c.Server, params, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+
+}
+
+func (c *Client) MovePostings(ctx context.Context, params *MovePostingsParams, body MovePostingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+
+	req, err := NewMovePostingsRequest(c.Server, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+
+}
+
+// IgnorePostingsWithBody executes the IgnorePostings operation.
+
+func (c *Client) IgnorePostingsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+
+	req, err := NewIgnorePostingsRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+
+}
+
+func (c *Client) IgnorePostings(ctx context.Context, body IgnorePostingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+
+	req, err := NewIgnorePostingsRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+
+}
+
 // MarkPostingsSeenWithBody executes the MarkPostingsSeen operation.
 
 func (c *Client) MarkPostingsSeenWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -1773,6 +1872,36 @@ func (c *Client) MarkPostingsSeen(ctx context.Context, body MarkPostingsSeenJSON
 
 }
 
+// TrashPostingsWithBody executes the TrashPostings operation.
+
+func (c *Client) TrashPostingsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+
+	req, err := NewTrashPostingsRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+
+}
+
+func (c *Client) TrashPostings(ctx context.Context, body TrashPostingsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+
+	req, err := NewTrashPostingsRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+
+}
+
 // MarkPostingsUnseenWithBody executes the MarkPostingsUnseen operation.
 
 func (c *Client) MarkPostingsUnseenWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -1792,102 +1921,6 @@ func (c *Client) MarkPostingsUnseenWithBody(ctx context.Context, contentType str
 func (c *Client) MarkPostingsUnseen(ctx context.Context, body MarkPostingsUnseenJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 
 	req, err := NewMarkPostingsUnseenRequest(c.Server, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-
-}
-
-// IgnorePosting executes the IgnorePosting operation.
-
-func (c *Client) IgnorePosting(ctx context.Context, postingId int64, reqEditors ...RequestEditorFn) (*http.Response, error) {
-
-	req, err := NewIgnorePostingRequest(c.Server, postingId)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-
-}
-
-// MovePostingToSetAside executes the MovePostingToSetAside operation.
-
-func (c *Client) MovePostingToSetAside(ctx context.Context, postingId int64, reqEditors ...RequestEditorFn) (*http.Response, error) {
-
-	req, err := NewMovePostingToSetAsideRequest(c.Server, postingId)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-
-}
-
-// MovePostingToFeed executes the MovePostingToFeed operation.
-
-func (c *Client) MovePostingToFeed(ctx context.Context, postingId int64, reqEditors ...RequestEditorFn) (*http.Response, error) {
-
-	req, err := NewMovePostingToFeedRequest(c.Server, postingId)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-
-}
-
-// MovePostingToReplyLater executes the MovePostingToReplyLater operation.
-
-func (c *Client) MovePostingToReplyLater(ctx context.Context, postingId int64, reqEditors ...RequestEditorFn) (*http.Response, error) {
-
-	req, err := NewMovePostingToReplyLaterRequest(c.Server, postingId)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-
-}
-
-// MovePostingToPaperTrail executes the MovePostingToPaperTrail operation.
-
-func (c *Client) MovePostingToPaperTrail(ctx context.Context, postingId int64, reqEditors ...RequestEditorFn) (*http.Response, error) {
-
-	req, err := NewMovePostingToPaperTrailRequest(c.Server, postingId)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-
-}
-
-// MovePostingToTrash executes the MovePostingToTrash operation.
-
-func (c *Client) MovePostingToTrash(ctx context.Context, postingId int64, reqEditors ...RequestEditorFn) (*http.Response, error) {
-
-	req, err := NewMovePostingToTrashRequest(c.Server, postingId)
 	if err != nil {
 		return nil, err
 	}
@@ -2836,6 +2869,40 @@ func NewCreateReplyRequestWithBody(server string, entryId int64, contentType str
 	return req, nil
 }
 
+// NewTrashEntryRequest generates requests for TrashEntry
+func NewTrashEntryRequest(server string, entryId int64) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "entry_id", runtime.ParamLocationPath, entryId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/entries/%s/status/trashed", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetFeedboxRequest generates requests for GetFeedbox
 func NewGetFeedboxRequest(server string, params *GetFeedboxParams) (*http.Request, error) {
 	var err error
@@ -3099,6 +3166,104 @@ func NewGetTrailboxRequest(server string, params *GetTrailboxParams) (*http.Requ
 	return req, nil
 }
 
+// NewMovePostingsRequest calls the generic MovePostings builder with application/json body
+func NewMovePostingsRequest(server string, params *MovePostingsParams, body MovePostingsJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewMovePostingsRequestWithBody(server, params, "application/json", bodyReader)
+}
+
+// NewMovePostingsRequestWithBody generates requests for MovePostings with any type of body
+func NewMovePostingsRequestWithBody(server string, params *MovePostingsParams, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/postings/moves")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", true, "box_id", runtime.ParamLocationQuery, params.BoxId); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewIgnorePostingsRequest calls the generic IgnorePostings builder with application/json body
+func NewIgnorePostingsRequest(server string, body IgnorePostingsJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewIgnorePostingsRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewIgnorePostingsRequestWithBody generates requests for IgnorePostings with any type of body
+func NewIgnorePostingsRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/postings/mutings")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewMarkPostingsSeenRequest calls the generic MarkPostingsSeen builder with application/json body
 func NewMarkPostingsSeenRequest(server string, body MarkPostingsSeenJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -3120,6 +3285,46 @@ func NewMarkPostingsSeenRequestWithBody(server string, contentType string, body 
 	}
 
 	operationPath := fmt.Sprintf("/postings/seen.json")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewTrashPostingsRequest calls the generic TrashPostings builder with application/json body
+func NewTrashPostingsRequest(server string, body TrashPostingsJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewTrashPostingsRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewTrashPostingsRequestWithBody generates requests for TrashPostings with any type of body
+func NewTrashPostingsRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/postings/trash")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -3175,210 +3380,6 @@ func NewMarkPostingsUnseenRequestWithBody(server string, contentType string, bod
 	}
 
 	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewIgnorePostingRequest generates requests for IgnorePosting
-func NewIgnorePostingRequest(server string, postingId int64) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "postingId", runtime.ParamLocationPath, postingId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/postings/%s/ignore.json", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewMovePostingToSetAsideRequest generates requests for MovePostingToSetAside
-func NewMovePostingToSetAsideRequest(server string, postingId int64) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "postingId", runtime.ParamLocationPath, postingId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/postings/%s/move/asidebox.json", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewMovePostingToFeedRequest generates requests for MovePostingToFeed
-func NewMovePostingToFeedRequest(server string, postingId int64) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "postingId", runtime.ParamLocationPath, postingId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/postings/%s/move/feedbox.json", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewMovePostingToReplyLaterRequest generates requests for MovePostingToReplyLater
-func NewMovePostingToReplyLaterRequest(server string, postingId int64) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "postingId", runtime.ParamLocationPath, postingId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/postings/%s/move/laterbox.json", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewMovePostingToPaperTrailRequest generates requests for MovePostingToPaperTrail
-func NewMovePostingToPaperTrailRequest(server string, postingId int64) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "postingId", runtime.ParamLocationPath, postingId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/postings/%s/move/trailbox.json", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewMovePostingToTrashRequest generates requests for MovePostingToTrash
-func NewMovePostingToTrashRequest(server string, postingId int64) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "postingId", runtime.ParamLocationPath, postingId)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/postings/%s/trash.json", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
 
 	return req, nil
 }
@@ -3823,7 +3824,7 @@ func NewCreateTopicMessageRequestWithBody(server string, topicId int64, contentT
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/topics/%s/entries.json", pathParam0)
+	operationPath := fmt.Sprintf("/topics/%s/messages", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -3869,51 +3870,49 @@ type OperationMetadata struct {
 // This is generated from x-hey-* extensions in the OpenAPI spec.
 // GET/HEAD/PUT/DELETE operations are always considered idempotent for retry purposes.
 var operationMetadata = map[string]OperationMetadata{
-	"ListBoxes":               {Idempotent: true, HasSensitiveParams: false},
-	"GetBox":                  {Idempotent: true, HasSensitiveParams: false},
-	"GetBubblebox":            {Idempotent: true, HasSensitiveParams: false},
-	"UncompleteHabit":         {Idempotent: true, HasSensitiveParams: false},
-	"CompleteHabit":           {Idempotent: true, HasSensitiveParams: false},
-	"GetJournalEntry":         {Idempotent: true, HasSensitiveParams: false},
-	"UpdateJournalEntry":      {Idempotent: false, HasSensitiveParams: false},
-	"GetOngoingTimeTrack":     {Idempotent: true, HasSensitiveParams: false},
-	"StartTimeTrack":          {Idempotent: false, HasSensitiveParams: false},
-	"UpdateTimeTrack":         {Idempotent: true, HasSensitiveParams: false},
-	"CreateCalendarTodo":      {Idempotent: false, HasSensitiveParams: false},
-	"DeleteCalendarTodo":      {Idempotent: true, HasSensitiveParams: false},
-	"UncompleteCalendarTodo":  {Idempotent: true, HasSensitiveParams: false},
-	"CompleteCalendarTodo":    {Idempotent: true, HasSensitiveParams: false},
-	"ListCalendars":           {Idempotent: true, HasSensitiveParams: false},
-	"GetCalendarRecordings":   {Idempotent: true, HasSensitiveParams: false},
-	"ListContacts":            {Idempotent: true, HasSensitiveParams: false},
-	"GetContact":              {Idempotent: true, HasSensitiveParams: false},
-	"ListDrafts":              {Idempotent: true, HasSensitiveParams: false},
-	"CreateReply":             {Idempotent: false, HasSensitiveParams: false},
-	"GetFeedbox":              {Idempotent: true, HasSensitiveParams: false},
-	"GetIdentity":             {Idempotent: true, HasSensitiveParams: false},
-	"GetImbox":                {Idempotent: true, HasSensitiveParams: false},
-	"CreateMessage":           {Idempotent: false, HasSensitiveParams: false},
-	"GetMessage":              {Idempotent: true, HasSensitiveParams: false},
-	"GetNavigation":           {Idempotent: true, HasSensitiveParams: false},
-	"GetTrailbox":             {Idempotent: true, HasSensitiveParams: false},
-	"MarkPostingsSeen":        {Idempotent: false, HasSensitiveParams: false},
-	"MarkPostingsUnseen":      {Idempotent: false, HasSensitiveParams: false},
-	"IgnorePosting":           {Idempotent: false, HasSensitiveParams: false},
-	"MovePostingToSetAside":   {Idempotent: false, HasSensitiveParams: false},
-	"MovePostingToFeed":       {Idempotent: false, HasSensitiveParams: false},
-	"MovePostingToReplyLater": {Idempotent: false, HasSensitiveParams: false},
-	"MovePostingToPaperTrail": {Idempotent: false, HasSensitiveParams: false},
-	"MovePostingToTrash":      {Idempotent: false, HasSensitiveParams: false},
-	"GetLaterbox":             {Idempotent: true, HasSensitiveParams: false},
-	"Search":                  {Idempotent: true, HasSensitiveParams: false},
-	"GetAsidebox":             {Idempotent: true, HasSensitiveParams: false},
-	"GetEverythingTopics":     {Idempotent: true, HasSensitiveParams: false},
-	"GetSentTopics":           {Idempotent: true, HasSensitiveParams: false},
-	"GetSpamTopics":           {Idempotent: true, HasSensitiveParams: false},
-	"GetTrashTopics":          {Idempotent: true, HasSensitiveParams: false},
-	"GetTopic":                {Idempotent: true, HasSensitiveParams: false},
-	"GetTopicEntries":         {Idempotent: true, HasSensitiveParams: false},
-	"CreateTopicMessage":      {Idempotent: false, HasSensitiveParams: false},
+	"ListBoxes":              {Idempotent: true, HasSensitiveParams: false},
+	"GetBox":                 {Idempotent: true, HasSensitiveParams: false},
+	"GetBubblebox":           {Idempotent: true, HasSensitiveParams: false},
+	"UncompleteHabit":        {Idempotent: true, HasSensitiveParams: false},
+	"CompleteHabit":          {Idempotent: true, HasSensitiveParams: false},
+	"GetJournalEntry":        {Idempotent: true, HasSensitiveParams: false},
+	"UpdateJournalEntry":     {Idempotent: false, HasSensitiveParams: false},
+	"GetOngoingTimeTrack":    {Idempotent: true, HasSensitiveParams: false},
+	"StartTimeTrack":         {Idempotent: false, HasSensitiveParams: false},
+	"UpdateTimeTrack":        {Idempotent: true, HasSensitiveParams: false},
+	"CreateCalendarTodo":     {Idempotent: false, HasSensitiveParams: false},
+	"DeleteCalendarTodo":     {Idempotent: true, HasSensitiveParams: false},
+	"UncompleteCalendarTodo": {Idempotent: true, HasSensitiveParams: false},
+	"CompleteCalendarTodo":   {Idempotent: true, HasSensitiveParams: false},
+	"ListCalendars":          {Idempotent: true, HasSensitiveParams: false},
+	"GetCalendarRecordings":  {Idempotent: true, HasSensitiveParams: false},
+	"ListContacts":           {Idempotent: true, HasSensitiveParams: false},
+	"GetContact":             {Idempotent: true, HasSensitiveParams: false},
+	"ListDrafts":             {Idempotent: true, HasSensitiveParams: false},
+	"CreateReply":            {Idempotent: false, HasSensitiveParams: false},
+	"TrashEntry":             {Idempotent: true, HasSensitiveParams: false},
+	"GetFeedbox":             {Idempotent: true, HasSensitiveParams: false},
+	"GetIdentity":            {Idempotent: true, HasSensitiveParams: false},
+	"GetImbox":               {Idempotent: true, HasSensitiveParams: false},
+	"CreateMessage":          {Idempotent: false, HasSensitiveParams: false},
+	"GetMessage":             {Idempotent: true, HasSensitiveParams: false},
+	"GetNavigation":          {Idempotent: true, HasSensitiveParams: false},
+	"GetTrailbox":            {Idempotent: true, HasSensitiveParams: false},
+	"MovePostings":           {Idempotent: false, HasSensitiveParams: false},
+	"IgnorePostings":         {Idempotent: false, HasSensitiveParams: false},
+	"MarkPostingsSeen":       {Idempotent: false, HasSensitiveParams: false},
+	"TrashPostings":          {Idempotent: false, HasSensitiveParams: false},
+	"MarkPostingsUnseen":     {Idempotent: false, HasSensitiveParams: false},
+	"GetLaterbox":            {Idempotent: true, HasSensitiveParams: false},
+	"Search":                 {Idempotent: true, HasSensitiveParams: false},
+	"GetAsidebox":            {Idempotent: true, HasSensitiveParams: false},
+	"GetEverythingTopics":    {Idempotent: true, HasSensitiveParams: false},
+	"GetSentTopics":          {Idempotent: true, HasSensitiveParams: false},
+	"GetSpamTopics":          {Idempotent: true, HasSensitiveParams: false},
+	"GetTrashTopics":         {Idempotent: true, HasSensitiveParams: false},
+	"GetTopic":               {Idempotent: true, HasSensitiveParams: false},
+	"GetTopicEntries":        {Idempotent: true, HasSensitiveParams: false},
+	"CreateTopicMessage":     {Idempotent: false, HasSensitiveParams: false},
 }
 
 // GetOperationMetadata returns metadata for the given operation ID.
@@ -4588,6 +4587,9 @@ type ClientWithResponsesInterface interface {
 
 	CreateReplyWithResponse(ctx context.Context, entryId int64, body CreateReplyJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateReplyResponse, error)
 
+	// TrashEntryWithResponse request
+	TrashEntryWithResponse(ctx context.Context, entryId int64, reqEditors ...RequestEditorFn) (*TrashEntryResponse, error)
+
 	// GetFeedboxWithResponse request
 	GetFeedboxWithResponse(ctx context.Context, params *GetFeedboxParams, reqEditors ...RequestEditorFn) (*GetFeedboxResponse, error)
 
@@ -4611,33 +4613,30 @@ type ClientWithResponsesInterface interface {
 	// GetTrailboxWithResponse request
 	GetTrailboxWithResponse(ctx context.Context, params *GetTrailboxParams, reqEditors ...RequestEditorFn) (*GetTrailboxResponse, error)
 
+	// MovePostingsWithBodyWithResponse request with any body
+	MovePostingsWithBodyWithResponse(ctx context.Context, params *MovePostingsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*MovePostingsResponse, error)
+
+	MovePostingsWithResponse(ctx context.Context, params *MovePostingsParams, body MovePostingsJSONRequestBody, reqEditors ...RequestEditorFn) (*MovePostingsResponse, error)
+
+	// IgnorePostingsWithBodyWithResponse request with any body
+	IgnorePostingsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*IgnorePostingsResponse, error)
+
+	IgnorePostingsWithResponse(ctx context.Context, body IgnorePostingsJSONRequestBody, reqEditors ...RequestEditorFn) (*IgnorePostingsResponse, error)
+
 	// MarkPostingsSeenWithBodyWithResponse request with any body
 	MarkPostingsSeenWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*MarkPostingsSeenResponse, error)
 
 	MarkPostingsSeenWithResponse(ctx context.Context, body MarkPostingsSeenJSONRequestBody, reqEditors ...RequestEditorFn) (*MarkPostingsSeenResponse, error)
 
+	// TrashPostingsWithBodyWithResponse request with any body
+	TrashPostingsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*TrashPostingsResponse, error)
+
+	TrashPostingsWithResponse(ctx context.Context, body TrashPostingsJSONRequestBody, reqEditors ...RequestEditorFn) (*TrashPostingsResponse, error)
+
 	// MarkPostingsUnseenWithBodyWithResponse request with any body
 	MarkPostingsUnseenWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*MarkPostingsUnseenResponse, error)
 
 	MarkPostingsUnseenWithResponse(ctx context.Context, body MarkPostingsUnseenJSONRequestBody, reqEditors ...RequestEditorFn) (*MarkPostingsUnseenResponse, error)
-
-	// IgnorePostingWithResponse request
-	IgnorePostingWithResponse(ctx context.Context, postingId int64, reqEditors ...RequestEditorFn) (*IgnorePostingResponse, error)
-
-	// MovePostingToSetAsideWithResponse request
-	MovePostingToSetAsideWithResponse(ctx context.Context, postingId int64, reqEditors ...RequestEditorFn) (*MovePostingToSetAsideResponse, error)
-
-	// MovePostingToFeedWithResponse request
-	MovePostingToFeedWithResponse(ctx context.Context, postingId int64, reqEditors ...RequestEditorFn) (*MovePostingToFeedResponse, error)
-
-	// MovePostingToReplyLaterWithResponse request
-	MovePostingToReplyLaterWithResponse(ctx context.Context, postingId int64, reqEditors ...RequestEditorFn) (*MovePostingToReplyLaterResponse, error)
-
-	// MovePostingToPaperTrailWithResponse request
-	MovePostingToPaperTrailWithResponse(ctx context.Context, postingId int64, reqEditors ...RequestEditorFn) (*MovePostingToPaperTrailResponse, error)
-
-	// MovePostingToTrashWithResponse request
-	MovePostingToTrashWithResponse(ctx context.Context, postingId int64, reqEditors ...RequestEditorFn) (*MovePostingToTrashResponse, error)
 
 	// GetLaterboxWithResponse request
 	GetLaterboxWithResponse(ctx context.Context, params *GetLaterboxParams, reqEditors ...RequestEditorFn) (*GetLaterboxResponse, error)
@@ -5186,6 +5185,31 @@ func (r CreateReplyResponse) StatusCode() int {
 	return 0
 }
 
+type TrashEntryResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON401      *UnauthorizedErrorResponseContent
+	JSON404      *NotFoundErrorResponseContent
+	JSON500      *InternalServerErrorResponseContent
+	JSON503      *ServiceUnavailableErrorResponseContent
+}
+
+// Status returns HTTPResponse.Status
+func (r TrashEntryResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r TrashEntryResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type GetFeedboxResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -5362,6 +5386,56 @@ func (r GetTrailboxResponse) StatusCode() int {
 	return 0
 }
 
+type MovePostingsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON401      *UnauthorizedErrorResponseContent
+	JSON422      *UnprocessableEntityErrorResponseContent
+	JSON500      *InternalServerErrorResponseContent
+	JSON503      *ServiceUnavailableErrorResponseContent
+}
+
+// Status returns HTTPResponse.Status
+func (r MovePostingsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r MovePostingsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type IgnorePostingsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON401      *UnauthorizedErrorResponseContent
+	JSON422      *UnprocessableEntityErrorResponseContent
+	JSON500      *InternalServerErrorResponseContent
+	JSON503      *ServiceUnavailableErrorResponseContent
+}
+
+// Status returns HTTPResponse.Status
+func (r IgnorePostingsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r IgnorePostingsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type MarkPostingsSeenResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -5386,6 +5460,31 @@ func (r MarkPostingsSeenResponse) StatusCode() int {
 	return 0
 }
 
+type TrashPostingsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON401      *UnauthorizedErrorResponseContent
+	JSON422      *UnprocessableEntityErrorResponseContent
+	JSON500      *InternalServerErrorResponseContent
+	JSON503      *ServiceUnavailableErrorResponseContent
+}
+
+// Status returns HTTPResponse.Status
+func (r TrashPostingsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r TrashPostingsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type MarkPostingsUnseenResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -5404,156 +5503,6 @@ func (r MarkPostingsUnseenResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r MarkPostingsUnseenResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type IgnorePostingResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON401      *UnauthorizedErrorResponseContent
-	JSON404      *NotFoundErrorResponseContent
-	JSON500      *InternalServerErrorResponseContent
-	JSON503      *ServiceUnavailableErrorResponseContent
-}
-
-// Status returns HTTPResponse.Status
-func (r IgnorePostingResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r IgnorePostingResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type MovePostingToSetAsideResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON401      *UnauthorizedErrorResponseContent
-	JSON404      *NotFoundErrorResponseContent
-	JSON500      *InternalServerErrorResponseContent
-	JSON503      *ServiceUnavailableErrorResponseContent
-}
-
-// Status returns HTTPResponse.Status
-func (r MovePostingToSetAsideResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r MovePostingToSetAsideResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type MovePostingToFeedResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON401      *UnauthorizedErrorResponseContent
-	JSON404      *NotFoundErrorResponseContent
-	JSON500      *InternalServerErrorResponseContent
-	JSON503      *ServiceUnavailableErrorResponseContent
-}
-
-// Status returns HTTPResponse.Status
-func (r MovePostingToFeedResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r MovePostingToFeedResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type MovePostingToReplyLaterResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON401      *UnauthorizedErrorResponseContent
-	JSON404      *NotFoundErrorResponseContent
-	JSON500      *InternalServerErrorResponseContent
-	JSON503      *ServiceUnavailableErrorResponseContent
-}
-
-// Status returns HTTPResponse.Status
-func (r MovePostingToReplyLaterResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r MovePostingToReplyLaterResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type MovePostingToPaperTrailResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON401      *UnauthorizedErrorResponseContent
-	JSON404      *NotFoundErrorResponseContent
-	JSON500      *InternalServerErrorResponseContent
-	JSON503      *ServiceUnavailableErrorResponseContent
-}
-
-// Status returns HTTPResponse.Status
-func (r MovePostingToPaperTrailResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r MovePostingToPaperTrailResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type MovePostingToTrashResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON401      *UnauthorizedErrorResponseContent
-	JSON404      *NotFoundErrorResponseContent
-	JSON500      *InternalServerErrorResponseContent
-	JSON503      *ServiceUnavailableErrorResponseContent
-}
-
-// Status returns HTTPResponse.Status
-func (r MovePostingToTrashResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r MovePostingToTrashResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -6033,6 +5982,15 @@ func (c *ClientWithResponses) CreateReplyWithResponse(ctx context.Context, entry
 	return ParseCreateReplyResponse(rsp)
 }
 
+// TrashEntryWithResponse request returning *TrashEntryResponse
+func (c *ClientWithResponses) TrashEntryWithResponse(ctx context.Context, entryId int64, reqEditors ...RequestEditorFn) (*TrashEntryResponse, error) {
+	rsp, err := c.TrashEntry(ctx, entryId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTrashEntryResponse(rsp)
+}
+
 // GetFeedboxWithResponse request returning *GetFeedboxResponse
 func (c *ClientWithResponses) GetFeedboxWithResponse(ctx context.Context, params *GetFeedboxParams, reqEditors ...RequestEditorFn) (*GetFeedboxResponse, error) {
 	rsp, err := c.GetFeedbox(ctx, params, reqEditors...)
@@ -6104,6 +6062,40 @@ func (c *ClientWithResponses) GetTrailboxWithResponse(ctx context.Context, param
 	return ParseGetTrailboxResponse(rsp)
 }
 
+// MovePostingsWithBodyWithResponse request with arbitrary body returning *MovePostingsResponse
+func (c *ClientWithResponses) MovePostingsWithBodyWithResponse(ctx context.Context, params *MovePostingsParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*MovePostingsResponse, error) {
+	rsp, err := c.MovePostingsWithBody(ctx, params, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseMovePostingsResponse(rsp)
+}
+
+func (c *ClientWithResponses) MovePostingsWithResponse(ctx context.Context, params *MovePostingsParams, body MovePostingsJSONRequestBody, reqEditors ...RequestEditorFn) (*MovePostingsResponse, error) {
+	rsp, err := c.MovePostings(ctx, params, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseMovePostingsResponse(rsp)
+}
+
+// IgnorePostingsWithBodyWithResponse request with arbitrary body returning *IgnorePostingsResponse
+func (c *ClientWithResponses) IgnorePostingsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*IgnorePostingsResponse, error) {
+	rsp, err := c.IgnorePostingsWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseIgnorePostingsResponse(rsp)
+}
+
+func (c *ClientWithResponses) IgnorePostingsWithResponse(ctx context.Context, body IgnorePostingsJSONRequestBody, reqEditors ...RequestEditorFn) (*IgnorePostingsResponse, error) {
+	rsp, err := c.IgnorePostings(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseIgnorePostingsResponse(rsp)
+}
+
 // MarkPostingsSeenWithBodyWithResponse request with arbitrary body returning *MarkPostingsSeenResponse
 func (c *ClientWithResponses) MarkPostingsSeenWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*MarkPostingsSeenResponse, error) {
 	rsp, err := c.MarkPostingsSeenWithBody(ctx, contentType, body, reqEditors...)
@@ -6121,6 +6113,23 @@ func (c *ClientWithResponses) MarkPostingsSeenWithResponse(ctx context.Context, 
 	return ParseMarkPostingsSeenResponse(rsp)
 }
 
+// TrashPostingsWithBodyWithResponse request with arbitrary body returning *TrashPostingsResponse
+func (c *ClientWithResponses) TrashPostingsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*TrashPostingsResponse, error) {
+	rsp, err := c.TrashPostingsWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTrashPostingsResponse(rsp)
+}
+
+func (c *ClientWithResponses) TrashPostingsWithResponse(ctx context.Context, body TrashPostingsJSONRequestBody, reqEditors ...RequestEditorFn) (*TrashPostingsResponse, error) {
+	rsp, err := c.TrashPostings(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseTrashPostingsResponse(rsp)
+}
+
 // MarkPostingsUnseenWithBodyWithResponse request with arbitrary body returning *MarkPostingsUnseenResponse
 func (c *ClientWithResponses) MarkPostingsUnseenWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*MarkPostingsUnseenResponse, error) {
 	rsp, err := c.MarkPostingsUnseenWithBody(ctx, contentType, body, reqEditors...)
@@ -6136,60 +6145,6 @@ func (c *ClientWithResponses) MarkPostingsUnseenWithResponse(ctx context.Context
 		return nil, err
 	}
 	return ParseMarkPostingsUnseenResponse(rsp)
-}
-
-// IgnorePostingWithResponse request returning *IgnorePostingResponse
-func (c *ClientWithResponses) IgnorePostingWithResponse(ctx context.Context, postingId int64, reqEditors ...RequestEditorFn) (*IgnorePostingResponse, error) {
-	rsp, err := c.IgnorePosting(ctx, postingId, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseIgnorePostingResponse(rsp)
-}
-
-// MovePostingToSetAsideWithResponse request returning *MovePostingToSetAsideResponse
-func (c *ClientWithResponses) MovePostingToSetAsideWithResponse(ctx context.Context, postingId int64, reqEditors ...RequestEditorFn) (*MovePostingToSetAsideResponse, error) {
-	rsp, err := c.MovePostingToSetAside(ctx, postingId, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseMovePostingToSetAsideResponse(rsp)
-}
-
-// MovePostingToFeedWithResponse request returning *MovePostingToFeedResponse
-func (c *ClientWithResponses) MovePostingToFeedWithResponse(ctx context.Context, postingId int64, reqEditors ...RequestEditorFn) (*MovePostingToFeedResponse, error) {
-	rsp, err := c.MovePostingToFeed(ctx, postingId, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseMovePostingToFeedResponse(rsp)
-}
-
-// MovePostingToReplyLaterWithResponse request returning *MovePostingToReplyLaterResponse
-func (c *ClientWithResponses) MovePostingToReplyLaterWithResponse(ctx context.Context, postingId int64, reqEditors ...RequestEditorFn) (*MovePostingToReplyLaterResponse, error) {
-	rsp, err := c.MovePostingToReplyLater(ctx, postingId, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseMovePostingToReplyLaterResponse(rsp)
-}
-
-// MovePostingToPaperTrailWithResponse request returning *MovePostingToPaperTrailResponse
-func (c *ClientWithResponses) MovePostingToPaperTrailWithResponse(ctx context.Context, postingId int64, reqEditors ...RequestEditorFn) (*MovePostingToPaperTrailResponse, error) {
-	rsp, err := c.MovePostingToPaperTrail(ctx, postingId, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseMovePostingToPaperTrailResponse(rsp)
-}
-
-// MovePostingToTrashWithResponse request returning *MovePostingToTrashResponse
-func (c *ClientWithResponses) MovePostingToTrashWithResponse(ctx context.Context, postingId int64, reqEditors ...RequestEditorFn) (*MovePostingToTrashResponse, error) {
-	rsp, err := c.MovePostingToTrash(ctx, postingId, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseMovePostingToTrashResponse(rsp)
 }
 
 // GetLaterboxWithResponse request returning *GetLaterboxResponse
@@ -7328,6 +7283,53 @@ func ParseCreateReplyResponse(rsp *http.Response) (*CreateReplyResponse, error) 
 	return response, nil
 }
 
+// ParseTrashEntryResponse parses an HTTP response from a TrashEntryWithResponse call
+func ParseTrashEntryResponse(rsp *http.Response) (*TrashEntryResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &TrashEntryResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest NotFoundErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest InternalServerErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest ServiceUnavailableErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseGetFeedboxResponse parses an HTTP response from a GetFeedboxWithResponse call
 func ParseGetFeedboxResponse(rsp *http.Response) (*GetFeedboxResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -7664,6 +7666,100 @@ func ParseGetTrailboxResponse(rsp *http.Response) (*GetTrailboxResponse, error) 
 	return response, nil
 }
 
+// ParseMovePostingsResponse parses an HTTP response from a MovePostingsWithResponse call
+func ParseMovePostingsResponse(rsp *http.Response) (*MovePostingsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &MovePostingsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest UnprocessableEntityErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON422 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest InternalServerErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest ServiceUnavailableErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseIgnorePostingsResponse parses an HTTP response from a IgnorePostingsWithResponse call
+func ParseIgnorePostingsResponse(rsp *http.Response) (*IgnorePostingsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &IgnorePostingsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest UnprocessableEntityErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON422 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest InternalServerErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest ServiceUnavailableErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseMarkPostingsSeenResponse parses an HTTP response from a MarkPostingsSeenWithResponse call
 func ParseMarkPostingsSeenResponse(rsp *http.Response) (*MarkPostingsSeenResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -7704,6 +7800,53 @@ func ParseMarkPostingsSeenResponse(rsp *http.Response) (*MarkPostingsSeenRespons
 	return response, nil
 }
 
+// ParseTrashPostingsResponse parses an HTTP response from a TrashPostingsWithResponse call
+func ParseTrashPostingsResponse(rsp *http.Response) (*TrashPostingsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &TrashPostingsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
+		var dest UnauthorizedErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON401 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 422:
+		var dest UnprocessableEntityErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON422 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
+		var dest InternalServerErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON500 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
+		var dest ServiceUnavailableErrorResponseContent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON503 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseMarkPostingsUnseenResponse parses an HTTP response from a MarkPostingsUnseenWithResponse call
 func ParseMarkPostingsUnseenResponse(rsp *http.Response) (*MarkPostingsUnseenResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -7724,288 +7867,6 @@ func ParseMarkPostingsUnseenResponse(rsp *http.Response) (*MarkPostingsUnseenRes
 			return nil, err
 		}
 		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorResponseContent
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableErrorResponseContent
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseIgnorePostingResponse parses an HTTP response from a IgnorePostingWithResponse call
-func ParseIgnorePostingResponse(rsp *http.Response) (*IgnorePostingResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &IgnorePostingResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest UnauthorizedErrorResponseContent
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest NotFoundErrorResponseContent
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorResponseContent
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableErrorResponseContent
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseMovePostingToSetAsideResponse parses an HTTP response from a MovePostingToSetAsideWithResponse call
-func ParseMovePostingToSetAsideResponse(rsp *http.Response) (*MovePostingToSetAsideResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &MovePostingToSetAsideResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest UnauthorizedErrorResponseContent
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest NotFoundErrorResponseContent
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorResponseContent
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableErrorResponseContent
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseMovePostingToFeedResponse parses an HTTP response from a MovePostingToFeedWithResponse call
-func ParseMovePostingToFeedResponse(rsp *http.Response) (*MovePostingToFeedResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &MovePostingToFeedResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest UnauthorizedErrorResponseContent
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest NotFoundErrorResponseContent
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorResponseContent
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableErrorResponseContent
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseMovePostingToReplyLaterResponse parses an HTTP response from a MovePostingToReplyLaterWithResponse call
-func ParseMovePostingToReplyLaterResponse(rsp *http.Response) (*MovePostingToReplyLaterResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &MovePostingToReplyLaterResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest UnauthorizedErrorResponseContent
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest NotFoundErrorResponseContent
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorResponseContent
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableErrorResponseContent
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseMovePostingToPaperTrailResponse parses an HTTP response from a MovePostingToPaperTrailWithResponse call
-func ParseMovePostingToPaperTrailResponse(rsp *http.Response) (*MovePostingToPaperTrailResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &MovePostingToPaperTrailResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest UnauthorizedErrorResponseContent
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest NotFoundErrorResponseContent
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
-		var dest InternalServerErrorResponseContent
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON500 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 503:
-		var dest ServiceUnavailableErrorResponseContent
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON503 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseMovePostingToTrashResponse parses an HTTP response from a MovePostingToTrashWithResponse call
-func ParseMovePostingToTrashResponse(rsp *http.Response) (*MovePostingToTrashResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &MovePostingToTrashResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 401:
-		var dest UnauthorizedErrorResponseContent
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON401 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest NotFoundErrorResponseContent
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 500:
 		var dest InternalServerErrorResponseContent

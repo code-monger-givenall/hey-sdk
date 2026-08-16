@@ -459,7 +459,7 @@ func TestMessagesService_Create(t *testing.T) {
 }
 
 func TestMessagesService_CreateTopicMessage(t *testing.T) {
-	client := newMutationTestClientWithValidation(t, "POST", "/topics/%s/entries.json",
+	client := newMutationTestClientWithValidation(t, "POST", "/topics/%s/messages",
 		func(t *testing.T, body map[string]any) {
 			t.Helper()
 			if _, ok := body["acting_sender_id"]; !ok {
@@ -478,6 +478,114 @@ func TestMessagesService_CreateTopicMessage(t *testing.T) {
 
 	err := client.Messages().CreateTopicMessage(context.Background(), 42, "Reply text")
 	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+// --- Postings ---
+
+func newPostingActionTestClient(t *testing.T, wantPath, wantBoxID string, wantIDs []int64) *Client {
+	t.Helper()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/boxes.json" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`[
+				{"id":2,"kind":"feedbox","name":"The Feed"},
+				{"id":3,"kind":"trailbox","name":"Paper Trail"},
+				{"id":4,"kind":"asidebox","name":"Set Aside"},
+				{"id":5,"kind":"laterbox","name":"Reply Later"}
+			]`))
+			return
+		}
+
+		if r.Method != http.MethodPost {
+			t.Errorf("method = %s, want POST", r.Method)
+		}
+		if r.URL.Path != wantPath {
+			t.Errorf("path = %s, want %s", r.URL.Path, wantPath)
+		}
+		if got := r.URL.Query().Get("box_id"); got != wantBoxID {
+			t.Errorf("box_id = %q, want %q", got, wantBoxID)
+		}
+
+		var body struct {
+			PostingIDs []int64 `json:"posting_ids"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Fatalf("decode request body: %v", err)
+		}
+		if len(body.PostingIDs) != len(wantIDs) {
+			t.Fatalf("posting_ids = %v, want %v", body.PostingIDs, wantIDs)
+		}
+		for i := range wantIDs {
+			if body.PostingIDs[i] != wantIDs[i] {
+				t.Errorf("posting_ids = %v, want %v", body.PostingIDs, wantIDs)
+				break
+			}
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	t.Cleanup(server.Close)
+
+	cfg := &Config{BaseURL: server.URL}
+	return NewClient(cfg, &StaticTokenProvider{Token: "test-token"}, WithMaxRetries(0))
+}
+
+func TestPostingsService_Move(t *testing.T) {
+	client := newPostingActionTestClient(t, "/postings/moves", "99", []int64{10, 11})
+	if err := client.Postings().Move(context.Background(), []int64{10, 11}, 99); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestPostingsService_MoveToNamedBoxes(t *testing.T) {
+	tests := []struct {
+		name  string
+		boxID string
+		move  func(context.Context, *PostingsService, int64) error
+	}{
+		{name: "feed", boxID: "2", move: func(ctx context.Context, service *PostingsService, id int64) error {
+			return service.MoveToFeed(ctx, id)
+		}},
+		{name: "paper trail", boxID: "3", move: func(ctx context.Context, service *PostingsService, id int64) error {
+			return service.MoveToPaperTrail(ctx, id)
+		}},
+		{name: "set aside", boxID: "4", move: func(ctx context.Context, service *PostingsService, id int64) error {
+			return service.MoveToSetAside(ctx, id)
+		}},
+		{name: "reply later", boxID: "5", move: func(ctx context.Context, service *PostingsService, id int64) error {
+			return service.MoveToReplyLater(ctx, id)
+		}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := newPostingActionTestClient(t, "/postings/moves", tt.boxID, []int64{10})
+			if err := tt.move(context.Background(), client.Postings(), 10); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+		})
+	}
+}
+
+func TestPostingsService_Trash(t *testing.T) {
+	client := newPostingActionTestClient(t, "/postings/trash", "", []int64{10, 11})
+	if err := client.Postings().Trash(context.Background(), []int64{10, 11}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestPostingsService_MoveToTrash(t *testing.T) {
+	client := newPostingActionTestClient(t, "/postings/trash", "", []int64{10})
+	if err := client.Postings().MoveToTrash(context.Background(), 10); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestPostingsService_Ignore(t *testing.T) {
+	client := newPostingActionTestClient(t, "/postings/mutings", "", []int64{10})
+	if err := client.Postings().Ignore(context.Background(), 10); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
@@ -517,6 +625,21 @@ func TestEntriesService_CreateReply(t *testing.T) {
 	)
 
 	err := client.Entries().CreateReply(context.Background(), 10, "My reply", []string{"test@example.com"}, nil, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestEntriesService_Trash(t *testing.T) {
+	client := newMutationTestClientWithValidation(
+		t,
+		"PUT",
+		"/entries/%s/status/trashed",
+		nil,
+		`{}`,
+	)
+
+	err := client.Entries().Trash(context.Background(), 10)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

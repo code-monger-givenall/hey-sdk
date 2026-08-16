@@ -2965,11 +2965,6 @@
     "reason": "phase-2: posting management"
   },
   {
-    "method": "POST",
-    "path": "/postings/moves",
-    "reason": "phase-2: posting moves"
-  },
-  {
     "method": "DELETE",
     "path": "/postings/{posting_id}/muting",
     "reason": "phase-2: posting muting"
@@ -2981,11 +2976,6 @@
   },
   {
     "method": "DELETE",
-    "path": "/postings/mutings",
-    "reason": "phase-2: posting mutings"
-  },
-  {
-    "method": "POST",
     "path": "/postings/mutings",
     "reason": "phase-2: posting mutings"
   },
@@ -3023,11 +3013,6 @@
     "method": "POST",
     "path": "/postings/spam",
     "reason": "phase-2: posting spam actions"
-  },
-  {
-    "method": "POST",
-    "path": "/postings/trash",
-    "reason": "phase-2: posting trash actions"
   },
   {
     "method": "POST",

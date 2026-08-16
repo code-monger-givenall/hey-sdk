@@ -88,9 +88,10 @@ service HEY {
         CreateMessage
         CreateTopicMessage
 
-        // Entries (2 MVP)
+        // Entries (3 MVP)
         ListDrafts
         CreateReply
+        TrashEntry
 
         // Contacts (2 MVP)
         ListContacts
@@ -122,15 +123,12 @@ service HEY {
         // Search (1 MVP)
         Search
 
-        // Postings (8 MVP)
+        // Postings (5 MVP)
         MarkPostingsSeen
         MarkPostingsUnseen
-        MovePostingToFeed
-        MovePostingToSetAside
-        MovePostingToReplyLater
-        MovePostingToPaperTrail
-        MovePostingToTrash
-        IgnorePosting
+        MovePostings
+        TrashPostings
+        IgnorePostings
     ]
 }
 
@@ -1235,7 +1233,7 @@ structure MessageAddressed {
 }
 
 /// Reply to an existing topic
-@http(method: "POST", uri: "/topics/{topicId}/entries.json")
+@http(method: "POST", uri: "/topics/{topicId}/messages")
 @tags(["Messages"])
 @heyRetry(maxAttempts: 2, baseDelayMs: 1000, backoff: "exponential", retryOn: [429, 503])
 operation CreateTopicMessage {
@@ -1319,6 +1317,22 @@ structure CreateReplyRequestContent {
 structure ReplyMessagePayload {
     @required
     content: String
+}
+
+/// Move an entry to Trash
+@idempotent
+@http(method: "PUT", uri: "/entries/{entry_id}/status/trashed")
+@tags(["Entries"])
+@heyRetry(maxAttempts: 2, baseDelayMs: 1000, backoff: "exponential", retryOn: [429, 503])
+operation TrashEntry {
+    input: TrashEntryInput
+    errors: [UnauthorizedError, NotFoundError, InternalServerError, ServiceUnavailableError]
+}
+
+structure TrashEntryInput {
+    @httpLabel
+    @required
+    entry_id: Long
 }
 
 // =============================================================================
@@ -1782,63 +1796,66 @@ structure MarkPostingsRequestContent {
     posting_ids: PostingIdList
 }
 
-/// Move posting to The Feed
-@http(method: "POST", uri: "/postings/{postingId}/move/feedbox.json")
+/// Move one or more postings to a box
+@http(method: "POST", uri: "/postings/moves")
 @tags(["Postings"])
 @heyRetry(maxAttempts: 2, baseDelayMs: 1000, backoff: "exponential", retryOn: [429, 503])
-operation MovePostingToFeed {
-    input: PostingActionInput
-    errors: [UnauthorizedError, NotFoundError, InternalServerError, ServiceUnavailableError]
+operation MovePostings {
+    input: MovePostingsInput
+    errors: [UnauthorizedError, UnprocessableEntityError, InternalServerError, ServiceUnavailableError]
 }
 
-/// Move posting to Set Aside
-@http(method: "POST", uri: "/postings/{postingId}/move/asidebox.json")
-@tags(["Postings"])
-@heyRetry(maxAttempts: 2, baseDelayMs: 1000, backoff: "exponential", retryOn: [429, 503])
-operation MovePostingToSetAside {
-    input: PostingActionInput
-    errors: [UnauthorizedError, NotFoundError, InternalServerError, ServiceUnavailableError]
-}
-
-/// Move posting to Reply Later
-@http(method: "POST", uri: "/postings/{postingId}/move/laterbox.json")
-@tags(["Postings"])
-@heyRetry(maxAttempts: 2, baseDelayMs: 1000, backoff: "exponential", retryOn: [429, 503])
-operation MovePostingToReplyLater {
-    input: PostingActionInput
-    errors: [UnauthorizedError, NotFoundError, InternalServerError, ServiceUnavailableError]
-}
-
-/// Move posting to Paper Trail
-@http(method: "POST", uri: "/postings/{postingId}/move/trailbox.json")
-@tags(["Postings"])
-@heyRetry(maxAttempts: 2, baseDelayMs: 1000, backoff: "exponential", retryOn: [429, 503])
-operation MovePostingToPaperTrail {
-    input: PostingActionInput
-    errors: [UnauthorizedError, NotFoundError, InternalServerError, ServiceUnavailableError]
-}
-
-/// Move posting to trash
-@http(method: "POST", uri: "/postings/{postingId}/trash.json")
-@tags(["Postings"])
-@heyRetry(maxAttempts: 2, baseDelayMs: 1000, backoff: "exponential", retryOn: [429, 503])
-operation MovePostingToTrash {
-    input: PostingActionInput
-    errors: [UnauthorizedError, NotFoundError, InternalServerError, ServiceUnavailableError]
-}
-
-/// Ignore a posting (stop notifications)
-@http(method: "POST", uri: "/postings/{postingId}/ignore.json")
-@tags(["Postings"])
-@heyRetry(maxAttempts: 2, baseDelayMs: 1000, backoff: "exponential", retryOn: [429, 503])
-operation IgnorePosting {
-    input: PostingActionInput
-    errors: [UnauthorizedError, NotFoundError, InternalServerError, ServiceUnavailableError]
-}
-
-/// Input for single-posting actions (move, trash, ignore)
-structure PostingActionInput {
-    @httpLabel
+structure MovePostingsInput {
+    @httpQuery("box_id")
     @required
-    postingId: Long
+    boxId: Long
+
+    @httpPayload
+    @required
+    body: MovePostingsRequestContent
+}
+
+structure MovePostingsRequestContent {
+    @required
+    posting_ids: PostingIdList
+}
+
+/// Move one or more postings to trash
+@http(method: "POST", uri: "/postings/trash")
+@tags(["Postings"])
+@heyRetry(maxAttempts: 2, baseDelayMs: 1000, backoff: "exponential", retryOn: [429, 503])
+operation TrashPostings {
+    input: TrashPostingsInput
+    errors: [UnauthorizedError, UnprocessableEntityError, InternalServerError, ServiceUnavailableError]
+}
+
+structure TrashPostingsInput {
+    @httpPayload
+    @required
+    body: TrashPostingsRequestContent
+}
+
+structure TrashPostingsRequestContent {
+    @required
+    posting_ids: PostingIdList
+}
+
+/// Ignore one or more postings (stop notifications)
+@http(method: "POST", uri: "/postings/mutings")
+@tags(["Postings"])
+@heyRetry(maxAttempts: 2, baseDelayMs: 1000, backoff: "exponential", retryOn: [429, 503])
+operation IgnorePostings {
+    input: IgnorePostingsInput
+    errors: [UnauthorizedError, UnprocessableEntityError, InternalServerError, ServiceUnavailableError]
+}
+
+structure IgnorePostingsInput {
+    @httpPayload
+    @required
+    body: IgnorePostingsRequestContent
+}
+
+structure IgnorePostingsRequestContent {
+    @required
+    posting_ids: PostingIdList
 }

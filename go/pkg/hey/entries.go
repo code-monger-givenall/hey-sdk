@@ -8,7 +8,7 @@ import (
 	"github.com/basecamp/hey-sdk/go/pkg/generated"
 )
 
-// EntriesService handles draft and reply operations.
+// EntriesService handles draft, reply, and entry-status operations.
 type EntriesService struct {
 	client *Client
 }
@@ -89,4 +89,27 @@ func (s *EntriesService) CreateReply(ctx context.Context, entryID int64, content
 
 	_, err = s.client.PostMutation(ctx, fmt.Sprintf("/entries/%d/replies.json", entryID), body)
 	return err
+}
+
+// Trash moves an entry to Trash.
+func (s *EntriesService) Trash(ctx context.Context, entryID int64) (err error) {
+	op := OperationInfo{
+		Service: "Entries", Operation: "TrashEntry",
+		ResourceType: "entry", IsMutation: true, ResourceID: entryID,
+	}
+	if gater, ok := s.client.hooks.(GatingHooks); ok {
+		if ctx, err = gater.OnOperationGate(ctx, op); err != nil {
+			return
+		}
+	}
+	start := time.Now()
+	ctx = s.client.hooks.OnOperationStart(ctx, op)
+	defer func() { s.client.hooks.OnOperationEnd(ctx, op, err, time.Since(start)) }()
+
+	s.client.initGeneratedClient()
+	resp, err := s.client.gen.TrashEntryWithResponse(ctx, entryID)
+	if err != nil {
+		return err
+	}
+	return CheckResponse(resp.HTTPResponse)
 }
